@@ -44,7 +44,7 @@ class PropValueTools {
 		returned as-is. Nested reactives are resolved to a fixed point, so a
 		thunk returning a thunk is not a trap.
 	**/
-	public static function resolve(v:PropValue):PropValue {
+	public static function resolve(v:Null<PropValue>):Null<PropValue> {
 		var current = v;
 		var guard = 0;
 		while (current != null && guard++ < 32) {
@@ -61,7 +61,7 @@ class PropValueTools {
 		reconcile path can tell a real change from a re-evaluated thunk that
 		produced the same thing. Callbacks compare by reference.
 	**/
-	public static function equals(a:PropValue, b:PropValue):Bool {
+	public static function equals(a:Null<PropValue>, b:Null<PropValue>):Bool {
 		var ra = resolve(a);
 		var rb = resolve(b);
 		if (ra == null || rb == null) return ra == rb;
@@ -75,6 +75,53 @@ class PropValueTools {
 			case [PCallbackFloat(x), PCallbackFloat(y)]: Reflect.compareMethods(x, y);
 			case [PCallbackInt(x), PCallbackInt(y)]: Reflect.compareMethods(x, y);
 			case _: false;
+		}
+	}
+
+	/**
+		Typed, null-safe readers. **Use these rather than switching yourself.**
+
+		A property that is absent resolves to `null`, and on a compiled target
+		(hxcpp) `switch` on a null enum is a **segmentation fault**, not a caught
+		error. Interpreted runs never show it, so hand-rolled switches pass every
+		`--interp` check and crash the first compiled backend that reads a
+		property a node does not carry.
+	**/
+	public static function asString(v:Null<PropValue>, def:String = ""):String {
+		var r = resolve(v);
+		if (r == null) return def;
+		return switch (r) {
+			case PString(x): x;
+			case _: def;
+		}
+	}
+
+	public static function asInt(v:Null<PropValue>, def:Int = 0):Int {
+		var r = resolve(v);
+		if (r == null) return def;
+		return switch (r) {
+			case PInt(x): x;
+			case _: def;
+		}
+	}
+
+	/** Accepts an `PInt` too: a whole number is a valid float. **/
+	public static function asFloat(v:Null<PropValue>, def:Float = 0.0):Float {
+		var r = resolve(v);
+		if (r == null) return def;
+		return switch (r) {
+			case PFloat(x): x;
+			case PInt(x): x;
+			case _: def;
+		}
+	}
+
+	public static function asBool(v:Null<PropValue>, def:Bool = false):Bool {
+		var r = resolve(v);
+		if (r == null) return def;
+		return switch (r) {
+			case PBool(x): x;
+			case _: def;
 		}
 	}
 }

@@ -50,8 +50,13 @@ Young. The vocabulary and both contracts are defined and covered by
 prove both are satisfiable):
 
 ```bash
-haxe -cp src -cp test -main Check --interp
+haxe -cp src -cp test -main Check --interp     # rapide
+haxe -cp src -cp test -main Check -cpp bin && ./bin/Check   # et sur cible compilée
 ```
+
+Run both. `--interp` tolerates things a compiled target does not — notably
+`switch` on a null enum, which segfaults under hxcpp and is exactly how an absent
+property behaves.
 
 No backend has adopted it yet — that is the next step, `aui` first, since its
 existing bridge is a strict subset of `sui`'s and the gap is pure filling-in.

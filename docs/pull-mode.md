@@ -72,6 +72,27 @@ points at it.
 Keep the root referenced on the Haxe side for as long as the host may walk it —
 one strong reference at the root is enough, since it retains the whole tree.
 
+## Read properties with the typed readers
+
+**Do not switch on a property value yourself.** A property a node does not carry
+resolves to `null`, and on a compiled target (hxcpp) `switch` on a null enum is a
+**segmentation fault**, not a caught error:
+
+```haxe
+// WRONG — segfaults the first time a node lacks "text"
+switch (PropValueTools.resolve(props.get("text"))) { case PString(v): v; case _: ""; }
+
+// RIGHT
+PropValueTools.asString(props.get("text"));
+PropValueTools.asInt(props.get("spacing"), 0);
+PropValueTools.asFloat(props.get("value"));
+PropValueTools.asBool(props.get("checked"));
+```
+
+Interpreted runs never show this: `--interp` tolerates the null switch. It cost a
+segfault in the first backend to adopt the contract, on a test suite that had been
+green under `--interp` all along. **Run your checks on a compiled target too.**
+
 ## Typed properties
 
 `aui`'s existing bridge exposes properties as `String` only, so every consumer

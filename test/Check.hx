@@ -74,6 +74,17 @@ class Check {
 		check("NodeSink.bindReactive enveloppe l'application", wrapped == 1);
 		check("bindReactive résout le thunk", sink.log[sink.log.length - 1] == "prop:label=différé");
 
+		// --- Propriété absente : le piège qui ne se voit qu'en compilé ---
+		// resolve(null) renvoie null, et un switch sur un enum null SEGFAULTE
+		// sur hxcpp. Ces lectures doivent renvoyer le défaut, pas planter.
+		var empty = new Node("Empty");
+		check("asString sur absente", PropValueTools.asString(empty.props.get("nope")) == "");
+		check("asInt sur absente", PropValueTools.asInt(empty.props.get("nope"), -1) == -1);
+		check("asFloat sur absente", PropValueTools.asFloat(empty.props.get("nope"), 1.5) == 1.5);
+		check("asBool sur absente", PropValueTools.asBool(empty.props.get("nope"), true) == true);
+		check("stringProp sur absente ne plante pas", src.stringProp(empty, "nope") == "");
+		check("equals tolère null", !PropValueTools.equals(null, PInt(1)) && PropValueTools.equals(null, null));
+
 		Sys.println(fails == 0 ? "\nTOUT PASSE" : '\n$fails ÉCHEC(S)');
 		#if sys
 		Sys.exit(fails == 0 ? 0 : 1);
@@ -101,29 +112,13 @@ class ToySource implements nui.NodeSource<Node> {
 
 	public function hasProp(n:Node, key:String):Bool return n.props.exists(key);
 
-	public function stringProp(n:Node, key:String):String
-		return switch (PropValueTools.resolve(n.props.get(key))) {
-			case PString(v): v;
-			case _: "";
-		}
+	public function stringProp(n:Node, key:String):String return PropValueTools.asString(n.props.get(key));
 
-	public function intProp(n:Node, key:String):Int
-		return switch (PropValueTools.resolve(n.props.get(key))) {
-			case PInt(v): v;
-			case _: 0;
-		}
+	public function intProp(n:Node, key:String):Int return PropValueTools.asInt(n.props.get(key));
 
-	public function floatProp(n:Node, key:String):Float
-		return switch (PropValueTools.resolve(n.props.get(key))) {
-			case PFloat(v): v;
-			case _: 0.0;
-		}
+	public function floatProp(n:Node, key:String):Float return PropValueTools.asFloat(n.props.get(key));
 
-	public function boolProp(n:Node, key:String):Bool
-		return switch (PropValueTools.resolve(n.props.get(key))) {
-			case PBool(v): v;
-			case _: false;
-		}
+	public function boolProp(n:Node, key:String):Bool return PropValueTools.asBool(n.props.get(key));
 
 	public function modifierCount(n:Node):Int return n.modifiers.length;
 
@@ -142,7 +137,9 @@ class ToySource implements nui.NodeSource<Node> {
 	public function actionId(n:Node):Int return n.props.exists("action") ? 1 : -1;
 
 	public function invokeAction(n:Node):Void {
-		switch (PropValueTools.resolve(n.props.get("action"))) {
+		var v = PropValueTools.resolve(n.props.get("action"));
+		if (v == null) return;
+		switch (v) {
 			case PCallback(fn): fn();
 			case _:
 		}
