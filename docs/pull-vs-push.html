@@ -278,7 +278,7 @@
     ["aui","Jetpack Compose","oui — snapshot system","pull","Même logique : Compose suit ses lectures d'état et recompose ce qu'il faut. Attention, le renderer dynamique de aui existe sur le papier mais n'est branché à rien."],
     ["cui","terminal","rien à préserver","pull","Un terminal n'a pas de widget avec état : on repeint un buffer de cellules. Reconstruire ne coûte donc rien, ce qui en fait un candidat au pull — alors qu'on le classait « impératif », donc push."],
     ["qui","Qt / Silica","non — widgets avec état, aucun diff","push","Les items Silica portent focus, caret et scroll, et Qt ne compare rien. Il faut donc lui dire précisément quoi changer, sous peine de détruire l'état à chaque rendu."],
-    ["wui","WinUI 3","—","aucun","wui n'exécute pas de Haxe : son générateur transpile l'arbre en C++ statique à la compilation. Il n'y a rien à quoi un contrat d'exécution puisse s'accrocher."]
+    ["wui","WinUI 3","non — retained-mode","push (bloqué)","Piège de classement : XAML <em>a l'air</em> déclaratif, mais WinUI 3 est retained-mode — on construit un arbre de contrôles une fois et on les mute, sans reconstruction ni diff. Il ira donc côté push, avec qui en référence. Bloqué pour l'instant : wui n'exécute aucun Haxe, son générateur transpile tout en C++ statique."]
   ];
 
   // --- Scène ---

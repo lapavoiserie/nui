@@ -57,8 +57,27 @@ SwiftUI in this one respect than to Qt.
 Still left open on purpose: confirm it once the others have adopted, with
 evidence, rather than forcing the fit in advance.
 
-## `wui` — blocked
+## `wui` — blocked, and it will land in push
 
 `wui` runs no Haxe at runtime: its generator transpiles the view tree to C++
 statics at compile time and the produced project links no hxcpp. There is nothing
 for a runtime contract to attach to until that changes.
+
+When it does, it implements **push**, not pull — despite sitting next to `sui` and
+`aui` among "native declarative UI" backends. **WinUI 3 is retained-mode**: you
+build a XAML control tree once and mutate it; it neither rebuilds nor diffs the
+way SwiftUI and Compose do. Its own generated C++ already says so:
+
+```cpp
+s_count_listeners.push_back([text_3]() {
+    text_3.Text(winrt::hstring(L"Count: " + std::to_wstring(s_count)));
+});
+```
+
+A listener capturing a **retained** control and mutating it — the push pattern,
+hand-written by the macro. Handing WinUI a tree to re-walk would destroy and
+recreate controls on every change, exactly as on Qt.
+
+That is worth stating because the wrong criterion gives the wrong answer here:
+XAML *looks* declarative. Ask instead whether the host preserves widget state
+across a rebuild — WinUI does not rebuild at all.
