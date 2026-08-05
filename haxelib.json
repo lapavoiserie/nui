@@ -1,0 +1,12 @@
+{
+    "name": "nui",
+    "url": "https://github.com/lapavoiserie/nui",
+    "license": "MIT",
+    "description": "Shared node model for La Pavoiserie — the vocabulary a view tree is described with, and the two renderer contracts (pull for declarative hosts, push for imperative ones).",
+    "version": "0.1.0",
+    "classPath": "src",
+    "tags": ["ui", "render", "tree", "haxe"],
+    "dependencies": {
+        "rui": ""
+    }
+}
