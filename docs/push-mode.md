@@ -89,6 +89,20 @@ interface NodeSink<Native> {
 `Native` is whatever the backend manipulates — a Silica item, a widget handle, a
 buffer region.
 
+**`create` materialises and nothing more.** It does not apply properties or
+modifiers, and does not mount children — the driver creates, then calls
+`applyProp` for each property, `applyModifiers` for the chain, and recurses:
+
+```haxe
+var item = sink.create(node, parent);
+for (key in node.props.keys()) sink.applyProp(item, node.type, key, node.props.get(key));
+sink.applyModifiers(item, node.type, node.modifiers);
+```
+
+Splitting them is what lets each property own its own effect through
+`bindReactive`. The first backend to adopt this contract read it the other way,
+mounted a tree, and watched its reactive property never evaluate.
+
 `applyProp` receives the node's **type** as well as the target. A native handle
 does not necessarily know what it is — a Silica item carries no type name — and
 without it every adopter ends up keeping a side table of handle to type. Hosts

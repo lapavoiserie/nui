@@ -28,7 +28,21 @@ package nui;
 	```
 **/
 interface NodeSink<Native> {
-	/** Materialise a node. Children are handled by `insert`. **/
+	/**
+		Materialise a node — **and nothing else**.
+
+		It does **not** apply the node's properties or modifiers, and it does not
+		mount its children. The driver creates, then calls `applyProp` for each
+		property, `applyModifiers` for the chain, and recurses. Splitting them is
+		what lets a property own its own effect through `bindReactive`.
+
+		Backends whose host attaches on creation (Silica instantiates into a
+		parent context) may use `parent` here; others insert separately.
+
+		The first real adopter read this the other way and mounted a tree whose
+		reactive property was never evaluated, so it is spelled out rather than
+		left to be inferred.
+	**/
 	function create(node:Node, parent:Null<Native>):Native;
 
 	/**
