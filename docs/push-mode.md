@@ -1,8 +1,9 @@
 # Push mode — `Node`, `PropValue`, `NodeSink<Native>`
 
-For a host that **diffs nothing**: Qt/Silica, a terminal. It has to be told what
-changed, so Haxe holds the tree, compares it with the previous one, and applies
-targeted patches.
+For a host with **stateful widgets and no diff of its own**: Qt/Silica. It has to
+be told what changed, so Haxe holds the tree, compares it with the previous one,
+and applies targeted patches — anything coarser would destroy and recreate
+controls that merely moved, losing focus, caret and scroll position.
 
 ## The tree
 

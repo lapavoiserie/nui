@@ -21,18 +21,27 @@ agree on so they stop describing the same tree five different ways.
 
 ## Why two contracts
 
-Because the host decides, not us.
+Because the host decides, not us. And the question that decides it is narrower
+than "declarative or imperative":
 
-**SwiftUI and Compose already diff and re-render on their own.** Handing them a
-tree they can walk on demand is the natural fit; diffing on the Haxe side would
-duplicate work the framework does anyway. That is [pull mode](pull-mode.md).
+> **Does the host preserve widget state across a rebuild?**
 
-**Qt/Silica and a terminal diff nothing.** They have to be told what changed, so
-Haxe must hold the tree, compare it with the previous one and apply targeted
-patches. That is [push mode](push-mode.md).
+| Host | Preserves state? | Mode |
+|---|---|---|
+| SwiftUI, Jetpack Compose | yes, through their own diff | [pull](pull-mode.md) |
+| a terminal | nothing to preserve — the buffer is repainted | pull fits |
+| Qt/Silica | stateful widgets, no diff of its own | [push](push-mode.md) |
 
-Neither reduces to the other without losing something: pull on Silica would
-rebuild the UI on every change, push on SwiftUI would duplicate its diff. So `nui`
+**Pull** hands the host a tree it walks on demand. Diffing on the Haxe side would
+duplicate work the framework already does.
+
+**Push** has Haxe hold the tree, compare it with the previous one and apply
+targeted patches — because the host will not do it for you.
+
+Neither reduces to the other. Pull on Qt would mean either destroying and
+recreating stateful widgets on every change — losing focus, caret and scroll
+position — or making the pull walk diff, which just moves the reconciler into
+native code in every backend. Push on SwiftUI would duplicate its diff. So `nui`
 normalises both rather than pretending one wins.
 
 ## What is shared

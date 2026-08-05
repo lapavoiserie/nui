@@ -42,14 +42,20 @@ nothing crosses. Giving it a real ordered chain is the one piece of genuine work
 
 Naming to align: `VNode` → `Node`, and `PropValue`'s integer tags → the enum.
 
-## `cui` — neither mode, yet
+## `cui` — a pull candidate
 
 `cui` renders with `measure(constraint)` then `render(buffer, area)` into a cell
 buffer, redrawing wholesale on a dirty flag. It consumes a tree and patches
-nothing, so neither contract fits as-is.
+nothing.
 
-Deliberately left open: decide once the other three have adopted, with evidence,
-rather than forcing a fit in advance.
+That reads at first like "neither contract fits", but by the criterion that
+actually decides — does the host preserve widget state across a rebuild? — a
+terminal has **no widget state to lose**, so repainting from a freshly walked
+tree costs nothing. `cui` is therefore a natural **pull** candidate, closer to
+SwiftUI in this one respect than to Qt.
+
+Still left open on purpose: confirm it once the others have adopted, with
+evidence, rather than forcing the fit in advance.
 
 ## `wui` — blocked
 
