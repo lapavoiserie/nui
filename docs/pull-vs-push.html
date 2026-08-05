@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>nui — pull et push, expliqués</title>
+<style>
+  :root{
+    --bg:#f7f7f8; --panel:#ffffff; --ink:#171423; --muted:#6b6478; --line:#e6e3ea;
+    --rose:#E11D48; --rose-d:#be123c; --rose-soft:rgba(225,29,72,.10);
+    --blue:#2563eb; --blue-soft:rgba(37,99,235,.10);
+    --amber:#b45309; --amber-soft:rgba(180,83,9,.12);
+    --green:#15803d; --green-soft:rgba(21,128,61,.12);
+    --code-bg:#1a1622; --code-ink:#e6e0ee;
+    --shadow:0 1px 2px rgba(23,20,35,.05),0 8px 24px rgba(23,20,35,.06);
+    --radius:14px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#120f18; --panel:#1b1723; --ink:#ece8f2; --muted:#a79fb5; --line:#2c2637;
+      --rose:#fb7185; --rose-d:#fda4af; --rose-soft:rgba(251,113,133,.14);
+      --blue:#60a5fa; --blue-soft:rgba(96,165,250,.14);
+      --amber:#fbbf24; --amber-soft:rgba(251,191,36,.14);
+      --green:#4ade80; --green-soft:rgba(74,222,128,.14);
+      --code-bg:#0f0c15; --code-ink:#ded7e8;
+      --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 30px rgba(0,0,0,.4);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:900px;margin:0 auto;padding:0 22px 110px}
+  a{color:var(--rose-d);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.86em;
+    background:var(--rose-soft);color:var(--rose-d);padding:.12em .4em;border-radius:6px}
+  pre{background:var(--code-bg);color:var(--code-ink);padding:14px 16px;border-radius:10px;
+    overflow-x:auto;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.55;margin:0}
+  pre code{background:none;color:inherit;padding:0}
+  header{padding:60px 0 22px}
+  .kicker{color:var(--rose-d);font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:12px}
+  h1{font-size:clamp(29px,4.4vw,40px);line-height:1.12;margin:.3em 0 .3em;letter-spacing:-.02em}
+  .lede{font-size:18px;color:var(--muted);max-width:62ch}
+  h2{font-size:24px;margin:50px 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--muted);margin:0 0 18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow)}
+  .btn{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+    font:inherit;font-size:14px;padding:.5em .9em;border-radius:9px;cursor:pointer;transition:.15s}
+  .btn:hover{border-color:var(--rose)}
+  .btn[aria-pressed="true"]{background:var(--rose);border-color:var(--rose);color:#fff}
+  @media (prefers-color-scheme:dark){.btn[aria-pressed="true"]{color:#2a0713}}
+  .row{display:flex;flex-wrap:wrap;gap:8px}
+  table{width:100%;border-collapse:collapse;font-size:14.5px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase}
+  .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:.25em .6em;border-radius:999px}
+  .t-rose{background:var(--rose-soft);color:var(--rose-d)}
+  .t-blue{background:var(--blue-soft);color:var(--blue)}
+  .t-green{background:var(--green-soft);color:var(--green)}
+  .t-amber{background:var(--amber-soft);color:var(--amber)}
+  .muted{color:var(--muted)}
+  .small{font-size:14px}
+
+  /* Scène à deux acteurs */
+  .stage{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:18px 0 6px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .col{padding:14px 16px;min-height:230px;background:var(--panel);transition:background .25s}
+  .col.act{background:var(--rose-soft)}
+  .col h4{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .col:first-child{border-right:1px solid var(--line)}
+  .op{font-size:13.5px;padding:5px 9px;border-radius:8px;margin:6px 0;border:1px dashed transparent;opacity:.32;transition:.25s;
+    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  .op.on{opacity:1;border-color:var(--rose);background:var(--panel)}
+  .arrow{grid-column:1/-1;text-align:center;font-size:13px;color:var(--muted);padding:6px;background:var(--panel);border-top:1px solid var(--line)}
+  .narr{border-left:3px solid var(--rose);padding:2px 0 2px 14px;margin:14px 0 0;min-height:62px}
+  .narr b{display:block;font-size:13px;color:var(--rose-d);letter-spacing:.04em;text-transform:uppercase}
+  footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">nui · le concept central</div>
+  <h1>Pull et push</h1>
+  <p class="lede">Deux façons de faire arriver un arbre de vues jusqu'à l'écran. La différence
+  n'est pas une préférence de style : elle est <strong>dictée par l'hôte</strong>, et elle se
+  ramène à une seule question.</p>
+</header>
+
+<div class="card" style="border-left:4px solid var(--rose)">
+  <div class="tag t-rose">La question qui décide</div>
+  <p style="font-size:19px;margin:12px 0 6px"><strong>L'hôte préserve-t-il l'état de ses
+  widgets quand on lui redonne l'interface&nbsp;?</strong></p>
+  <p class="small muted" style="margin:0">Le focus d'un champ, le caret au milieu d'un mot, la
+  position de scroll d'une liste. Si l'hôte sait garder tout ça alors qu'on lui redécrit
+  l'écran, on peut lui redécrire l'écran. Sinon, il faut lui dire <em>précisément</em> ce qui
+  a changé.</p>
+</div>
+
+<h2>Ce qui se passe quand un état change</h2>
+<p class="sub">Choisissez un mode et avancez pas à pas. Le côté qui travaille s'allume.</p>
+
+<div class="card">
+  <div class="row" style="margin-bottom:14px">
+    <button class="btn" id="m-pull" aria-pressed="true">Pull</button>
+    <button class="btn" id="m-push" aria-pressed="false">Push</button>
+    <button class="btn" id="m-fine" aria-pressed="false">Push, granularité fine</button>
+  </div>
+
+  <div class="stage">
+    <div class="col" id="col-haxe">
+      <h4>Haxe</h4>
+      <div id="ops-haxe"></div>
+    </div>
+    <div class="col" id="col-host">
+      <h4 id="host-name">L'hôte — SwiftUI, Compose</h4>
+      <div id="ops-host"></div>
+    </div>
+    <div class="arrow" id="arrow">&nbsp;</div>
+  </div>
+
+  <div class="narr">
+    <b id="step-n"></b>
+    <span id="step-t"></span>
+  </div>
+
+  <div class="row" style="margin-top:14px">
+    <button class="btn" id="prev">‹ Précédent</button>
+    <button class="btn" id="next">Suivant ›</button>
+    <button class="btn" id="replay">Rejouer</button>
+    <span class="small muted" id="counter" style="align-self:center;margin-left:6px"></span>
+  </div>
+</div>
+
+<h2>Qui fait quoi</h2>
+<p class="sub">Les trois responsabilités, et de quel côté elles tombent.</p>
+
+<div class="card">
+  <table>
+    <tr><th>Responsabilité</th><th>Pull</th><th>Push</th></tr>
+    <tr>
+      <td><strong>Tenir l'arbre</strong></td>
+      <td>Haxe le produit, l'hôte le lit à la demande</td>
+      <td>Haxe le tient, l'hôte ne le voit jamais</td>
+    </tr>
+    <tr>
+      <td><strong>Décider ce qui a changé</strong></td>
+      <td><span class="tag t-blue">l'hôte</span> avec son propre diff</td>
+      <td><span class="tag t-rose">Haxe</span> avec le réconciliateur</td>
+    </tr>
+    <tr>
+      <td><strong>Toucher les widgets</strong></td>
+      <td>l'hôte, comme il l'entend</td>
+      <td>l'hôte, mais sur ordre&nbsp;: <code>applyProp</code>, <code>insert</code>, <code>remove</code></td>
+    </tr>
+    <tr>
+      <td><strong>Ce que Haxe dit</strong></td>
+      <td>« ça a changé, relis »&nbsp;— <code>rebuild()</code></td>
+      <td>« mets ce texte-là sur ce bouton-ci »</td>
+    </tr>
+  </table>
+</div>
+
+<h2>Et si on se trompe de mode&nbsp;?</h2>
+
+<div class="card" style="margin-bottom:14px">
+  <span class="tag t-amber">Pull sur un hôte à widgets — Qt/Silica</span>
+  <p class="small" style="margin:12px 0 0">L'hôte relit l'arbre, mais il ne sait pas diffé. Deux
+  issues, mauvaises toutes les deux&nbsp;:</p>
+  <ul class="small" style="margin:6px 0 0">
+    <li>il <strong>détruit et recrée</strong> les widgets à chaque changement — le champ qu'on
+    était en train de remplir perd son focus et son caret, la liste perd son scroll&nbsp;;</li>
+    <li>ou bien on fait <strong>differ le parcours lui-même</strong> — et le réconciliateur se
+    retrouve écrit en C++/QML <em>dans chaque backend</em>, au lieu d'exister une fois en Haxe.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <span class="tag t-amber">Push sur un hôte qui diffe déjà — SwiftUI, Compose</span>
+  <p class="small" style="margin:12px 0 0">Ça marche, mais Haxe calcule un diff que le framework
+  refera derrière lui. On paie deux fois, et on se prive de ce que l'hôte fait mieux que nous —
+  ses animations et sa préservation d'état reposent justement sur <em>son</em> diff.</p>
+</div>
+
+<h2>Les cinq backends</h2>
+<p class="sub">Le critère appliqué. Cliquez une ligne pour voir le raisonnement.</p>
+
+<div class="card">
+  <table id="backends">
+    <tr><th>Backend</th><th>Hôte</th><th>Préserve l'état&nbsp;?</th><th>Mode</th></tr>
+  </table>
+  <div class="narr" style="border-left-color:var(--blue);margin-top:16px">
+    <b id="bk-n">Choisissez un backend</b>
+    <span id="bk-t" class="small">Le critère ne se devine pas depuis le nom du framework — il se
+    lit dans ce que l'hôte fait d'un rebuild.</span>
+  </div>
+</div>
+
+<h2>En une phrase</h2>
+<div class="card" style="border-left:4px solid var(--green)">
+  <p style="margin:0"><strong>Pull</strong>&nbsp;: Haxe décrit, l'hôte décide.
+  <strong>Push</strong>&nbsp;: Haxe décide, l'hôte exécute.<br>
+  <span class="muted small">Et c'est l'hôte qui impose lequel des deux, pas nous. C'est
+  pourquoi <code>nui</code> normalise les deux au lieu de faire semblant que l'un gagne.</span></p>
+</div>
+
+<footer>
+  <a href="/">nui</a> ·
+  <a href="pull-mode.md">Contrat pull</a> ·
+  <a href="push-mode.md">Contrat push</a> ·
+  <a href="node-model.md">Le modèle de nœud</a>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var MODES = {
+    pull: {
+      host: "L'hôte — SwiftUI, Compose",
+      steps: [
+        {side:"haxe", haxe:0, host:-1, arrow:"", n:"1 · l'app écrit",
+         t:"<code>count.set(1)</code>. Rien d'autre ne bouge encore."},
+        {side:"haxe", haxe:1, host:-1, arrow:"",  n:"2 · l'arbre est reproduit",
+         t:"L'effet de rendu se rejoue, <code>body()</code> renvoie un nouvel arbre de vues Haxe."},
+        {side:"haxe", haxe:2, host:-1, arrow:"Haxe → hôte&nbsp;: « ça a changé, relis »", n:"3 · un seul signal",
+         t:"Haxe appelle <code>rebuild()</code>. C'est <strong>tout</strong> ce qu'il communique — pas ce qui a changé, juste que quelque chose a changé."},
+        {side:"host", haxe:-1, host:0, arrow:"hôte → Haxe&nbsp;: questions", n:"4 · l'hôte interroge",
+         t:"Le renderer natif parcourt l'arbre et pose ses questions&nbsp;: <code>typeOf</code>, <code>childCount</code>, <code>childAt</code>, <code>stringProp</code>… Haxe ne fait que répondre."},
+        {side:"host", haxe:-1, host:1, arrow:"", n:"5 · l'hôte diffe",
+         t:"SwiftUI ou Compose compare avec ce qu'il affichait — <strong>avec son propre mécanisme</strong> — et ne met à jour que le nécessaire."},
+        {side:"host", haxe:-1, host:2, arrow:"", n:"6 · l'état survit",
+         t:"Le champ qu'on remplissait garde son focus et son caret&nbsp;: l'hôte a reconnu que c'était le même widget. C'est lui qui préserve, pas nous."}
+      ],
+      haxeOps:["count.set(1)", "body() → arbre", "rebuild()"],
+      hostOps:["typeOf / childAt / stringProp…", "diff interne", "met à jour, garde l'état"]
+    },
+    push: {
+      host: "L'hôte — Qt/Silica",
+      steps: [
+        {side:"haxe", haxe:0, host:-1, arrow:"", n:"1 · l'app écrit",
+         t:"<code>count.set(1)</code>, comme en pull. La différence est dans tout ce qui suit."},
+        {side:"haxe", haxe:1, host:-1, arrow:"", n:"2 · l'arbre est reproduit",
+         t:"L'effet se rejoue et Haxe construit un nouvel arbre de <code>Node</code>."},
+        {side:"haxe", haxe:2, host:-1, arrow:"", n:"3 · Haxe diffe",
+         t:"Le réconciliateur compare le nouvel arbre avec le précédent. <strong>C'est ici que se décide ce qui a changé</strong> — l'hôte n'en saura jamais rien."},
+        {side:"haxe", haxe:3, host:-1, arrow:"Haxe → hôte&nbsp;: des ordres précis", n:"4 · des ordres, pas un signal",
+         t:"Haxe appelle le sink pour les seules différences&nbsp;: <code>applyProp(bouton, \"text\", …)</code>, <code>insert</code>, <code>remove</code>."},
+        {side:"host", haxe:-1, host:0, arrow:"", n:"5 · l'hôte exécute",
+         t:"Qt applique ce qu'on lui demande. Il n'a rien comparé, rien décidé — et c'est pour ça que le champ voisin, auquel personne n'a touché, garde son focus."}
+      ],
+      haxeOps:["count.set(1)", "arbre de Node", "réconciliateur : diff", "applyProp / insert / remove"],
+      hostOps:["applique les ordres"]
+    },
+    fine: {
+      host: "L'hôte — Qt/Silica",
+      steps: [
+        {side:"haxe", haxe:0, host:-1, arrow:"", n:"1 · l'app écrit",
+         t:"<code>count.set(1)</code>. Le signal est lu par <strong>un effet par binding</strong>, posé au montage."},
+        {side:"haxe", haxe:1, host:-1, arrow:"Haxe → hôte&nbsp;: un seul ordre", n:"2 · une seule propriété",
+         t:"Seul l'effet de <em>cette</em> propriété se rejoue. Pas de nouvel arbre, pas de diff&nbsp;: <code>applyProp(label, \"text\", \"1\")</code>."},
+        {side:"host", haxe:-1, host:0, arrow:"", n:"3 · l'hôte exécute",
+         t:"Un seul widget est touché. C'est ainsi que <code>qui</code> pilote Silica, validé sur appareil&nbsp;: ajouter un item rejoue le binding de la liste, le reste de l'écran n'est jamais visité."},
+        {side:"haxe", haxe:-1, host:-1, arrow:"", n:"Le même contrat",
+         t:"Rien n'a changé côté modèle&nbsp;: même arbre, même sink. Seul <code>bindReactive</code> diffère — <code>fn -> fn()</code> pour le mode grossier, <code>fn -> new Effect(fn)</code> pour celui-ci."}
+      ],
+      haxeOps:["count.set(1) → effet du binding", "applyProp (une seule)"],
+      hostOps:["applique un ordre"]
+    }
+  };
+
+  var BACKENDS = [
+    ["sui","SwiftUI","oui — diff interne","pull","SwiftUI reconstruit sa hiérarchie de vues à chaque rendu et retrouve l'identité des siennes. Il a fallu lui donner une identité stable pour qu'il y arrive : sans clé, il détruisait un champ pendant qu'on tapait dedans."],
+    ["aui","Jetpack Compose","oui — snapshot system","pull","Même logique : Compose suit ses lectures d'état et recompose ce qu'il faut. Attention, le renderer dynamique de aui existe sur le papier mais n'est branché à rien."],
+    ["cui","terminal","rien à préserver","pull","Un terminal n'a pas de widget avec état : on repeint un buffer de cellules. Reconstruire ne coûte donc rien, ce qui en fait un candidat au pull — alors qu'on le classait « impératif », donc push."],
+    ["qui","Qt / Silica","non — widgets avec état, aucun diff","push","Les items Silica portent focus, caret et scroll, et Qt ne compare rien. Il faut donc lui dire précisément quoi changer, sous peine de détruire l'état à chaque rendu."],
+    ["wui","WinUI 3","—","aucun","wui n'exécute pas de Haxe : son générateur transpile l'arbre en C++ statique à la compilation. Il n'y a rien à quoi un contrat d'exécution puisse s'accrocher."]
+  ];
+
+  // --- Scène ---
+  var mode = "pull", step = 0;
+  var el = function(id){ return document.getElementById(id); };
+
+  function renderOps(){
+    var m = MODES[mode];
+    el("host-name").textContent = m.host;
+    el("ops-haxe").innerHTML = m.haxeOps.map(function(o,i){ return '<div class="op" data-i="'+i+'">'+o+'</div>'; }).join("");
+    el("ops-host").innerHTML = m.hostOps.map(function(o,i){ return '<div class="op" data-i="'+i+'">'+o+'</div>'; }).join("");
+  }
+
+  function draw(){
+    var m = MODES[mode], s = m.steps[step];
+    Array.prototype.forEach.call(el("ops-haxe").children, function(n,i){ n.classList.toggle("on", i === s.haxe); });
+    Array.prototype.forEach.call(el("ops-host").children, function(n,i){ n.classList.toggle("on", i === s.host); });
+    el("col-haxe").classList.toggle("act", s.side === "haxe");
+    el("col-host").classList.toggle("act", s.side === "host");
+    el("arrow").innerHTML = s.arrow || "&nbsp;";
+    el("step-n").textContent = s.n;
+    el("step-t").innerHTML = s.t;
+    el("counter").textContent = (step + 1) + " / " + m.steps.length;
+    el("prev").disabled = step === 0;
+    el("next").disabled = step === m.steps.length - 1;
+  }
+
+  function setMode(k){
+    mode = k; step = 0;
+    ["pull","push","fine"].forEach(function(x){ el("m-" + x).setAttribute("aria-pressed", String(x === k)); });
+    renderOps(); draw();
+  }
+
+  el("m-pull").onclick = function(){ setMode("pull"); };
+  el("m-push").onclick = function(){ setMode("push"); };
+  el("m-fine").onclick = function(){ setMode("fine"); };
+  el("next").onclick = function(){ if (step < MODES[mode].steps.length - 1) { step++; draw(); } };
+  el("prev").onclick = function(){ if (step > 0) { step--; draw(); } };
+  el("replay").onclick = function(){ step = 0; draw(); };
+
+  // --- Backends ---
+  var tbl = el("backends");
+  BACKENDS.forEach(function(b, i){
+    var tr = document.createElement("tr");
+    tr.style.cursor = "pointer";
+    var mode = b[3] === "pull" ? '<span class="tag t-blue">pull</span>'
+             : b[3] === "push" ? '<span class="tag t-rose">push</span>'
+             : '<span class="tag t-amber">aucun</span>';
+    tr.innerHTML = "<td><code>" + b[0] + "</code></td><td>" + b[1] + "</td><td class='small'>" + b[2] + "</td><td>" + mode + "</td>";
+    tr.onclick = function(){
+      el("bk-n").textContent = b[0] + " — " + b[1];
+      el("bk-t").innerHTML = b[4];
+    };
+    tbl.appendChild(tr);
+  });
+
+  setMode("pull");
+})();
+</script>
+</body>
+</html>

@@ -1,5 +1,8 @@
 # Push mode — `Node`, `PropValue`, `NodeSink<Native>`
 
+> See [pull and push explained step by step](pull-vs-push.html) if you want the
+> sequence before the signatures.
+
 For a host with **stateful widgets and no diff of its own**: Qt/Silica. It has to
 be told what changed, so Haxe holds the tree, compares it with the previous one,
 and applies targeted patches — anything coarser would destroy and recreate

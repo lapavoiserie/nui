@@ -2,6 +2,9 @@
 
 For a host that **diffs and re-renders on its own**: SwiftUI, Jetpack Compose.
 
+> See [pull and push explained step by step](pull-vs-push.html) if you want the
+> sequence before the signatures.
+
 The native renderer walks the tree on demand, asking for one thing at a time.
 Haxe answers. Nothing is pushed and nothing is diffed on the Haxe side — that
 would duplicate work the framework already does.

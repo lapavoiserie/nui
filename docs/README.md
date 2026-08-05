@@ -32,6 +32,9 @@ than "declarative or imperative":
 | a terminal | nothing to preserve — the buffer is repainted | pull fits |
 | Qt/Silica | stateful widgets, no diff of its own | [push](push-mode.md) |
 
+> **New to this?** [**Pull and push, explained step by step**](pull-vs-push.html) — an
+> interactive walkthrough of what happens when a state changes, in each mode.
+
 **Pull** hands the host a tree it walks on demand. Diffing on the Haxe side would
 duplicate work the framework already does.
 
