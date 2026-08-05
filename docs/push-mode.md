@@ -76,8 +76,8 @@ Callbacks compare by reference.
 ```haxe
 interface NodeSink<Native> {
     function create(node:Node, parent:Null<Native>):Native;
-    function applyProp(target:Native, key:String, value:PropValue):Void;
-    function applyModifiers(target:Native, modifiers:Array<Modifier>):Void;
+    function applyProp(target:Native, type:String, key:String, value:PropValue):Void;
+    function applyModifiers(target:Native, type:String, modifiers:Array<Modifier>):Void;
     function insert(parent:Native, child:Native, index:Int):Void;
     function remove(parent:Native, child:Native):Void;
     function destroy(target:Native):Void;
@@ -88,6 +88,11 @@ interface NodeSink<Native> {
 
 `Native` is whatever the backend manipulates — a Silica item, a widget handle, a
 buffer region.
+
+`applyProp` receives the node's **type** as well as the target. A native handle
+does not necessarily know what it is — a Silica item carries no type name — and
+without it every adopter ends up keeping a side table of handle to type. Hosts
+that *can* recover the type from the handle are free to ignore the argument.
 
 ## Granularity is one hook
 

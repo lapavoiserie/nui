@@ -65,12 +65,12 @@ class Check {
 
 		var sink = new ToySink();
 		var native = sink.create(root, null);
-		sink.applyProp(native, "text", PString("posé"));
+		sink.applyProp(native, "VStack", "text", PString("posé"));
 		check("NodeSink.create + applyProp", sink.log.join(",") == "create:VStack,prop:text=posé");
 
 		var wrapped = 0;
 		sink.bindReactive = function(f) { wrapped++; f(); };
-		sink.applyProp(native, "label", PReactive(() -> PString("différé")));
+		sink.applyProp(native, "VStack", "label", PReactive(() -> PString("différé")));
 		check("NodeSink.bindReactive enveloppe l'application", wrapped == 1);
 		check("bindReactive résout le thunk", sink.log[sink.log.length - 1] == "prop:label=différé");
 
@@ -165,7 +165,7 @@ class ToySink implements nui.NodeSink<String> {
 		return node.type;
 	}
 
-	public function applyProp(target:String, key:String, value:PropValue):Void {
+	public function applyProp(target:String, type:String, key:String, value:PropValue):Void {
 		_bind(function() {
 			var resolved = PropValueTools.resolve(value);
 			var shown = switch (resolved) {
@@ -179,7 +179,7 @@ class ToySink implements nui.NodeSink<String> {
 		});
 	}
 
-	public function applyModifiers(target:String, modifiers:Array<Modifier>):Void {
+	public function applyModifiers(target:String, type:String, modifiers:Array<Modifier>):Void {
 		for (m in modifiers) log.push("mod:" + m.type);
 	}
 

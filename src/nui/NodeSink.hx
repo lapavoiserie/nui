@@ -32,14 +32,22 @@ interface NodeSink<Native> {
 	function create(node:Node, parent:Null<Native>):Native;
 
 	/**
-		Apply one property. The value may still be `PReactive` — resolve it with
-		`PropValueTools.resolve`, and wrap the application in `bindReactive` so
-		the binding owns its own effect.
-	**/
-	function applyProp(target:Native, key:String, value:PropValue):Void;
+		Apply one property.
 
-	/** Apply the ordered modifier chain. **/
-	function applyModifiers(target:Native, modifiers:Array<Modifier>):Void;
+		`type` is the node's type — the same string `create` received. It is
+		passed rather than looked up because **a native handle does not
+		necessarily know what it is**: a Silica item carries no type name, so
+		without this every adopter keeps a side table of handle to type. Hosts
+		that can recover the type from the handle are free to ignore it.
+
+		The value may still be `PReactive` — read it with
+		`PropValueTools.asString` and friends, which are null-safe, and wrap the
+		application in `bindReactive` so the binding owns its own effect.
+	**/
+	function applyProp(target:Native, type:String, key:String, value:PropValue):Void;
+
+	/** Apply the ordered modifier chain. Takes `type` for the same reason as `applyProp`. **/
+	function applyModifiers(target:Native, type:String, modifiers:Array<Modifier>):Void;
 
 	function insert(parent:Native, child:Native, index:Int):Void;
 	function remove(parent:Native, child:Native):Void;
