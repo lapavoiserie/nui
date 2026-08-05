@@ -1,4 +1,5 @@
 import nui.Node;
+import nui.Modifier;
 import nui.PropValue;
 
 /**
