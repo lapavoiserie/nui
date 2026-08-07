@@ -27,6 +27,29 @@ package nui;
 	sink.bindReactive = fn -> new rui.Signal.Effect(fn);
 	```
 **/
+/**
+	## Two adopters, and what the second settled (2026-08-07)
+
+	`qui` (Silica) could not honour three of this contract's assumptions, and
+	they were deliberately left unsoftened: softening for a sample of one would
+	have crippled whoever came next. `wui` (WinUI 3) is that second adopter, and
+	it honours all three.
+
+	| Assumption | `qui` | `wui` |
+	|---|---|---|
+	| `create` and `insert` are separable | no — QML instantiates into a parent | **yes** |
+	| the insertion index is choosable | no — positioners append | **yes**, `Children().InsertAt` |
+	| `destroy` frees | no — it only hides, and leaks | **yes** |
+
+	So the contract is not over-specified; `qui` is under-capable. The gaps stay
+	as they are, and `qui`'s sink keeps documenting where it falls short.
+
+	The second adopter also settled something nobody asked: **`Native` need not
+	be inspectable.** `wui` cannot hold a WinRT control in Haxe at all, so its
+	handle is an `Int` indexing a table on the C++ side. The `type` parameter on
+	`applyProp` — added because a Silica item carries no type name — turns out to
+	be load-bearing for a second, unrelated reason.
+**/
 interface NodeSink<Native> {
 	/**
 		Materialise a node — **and nothing else**.
