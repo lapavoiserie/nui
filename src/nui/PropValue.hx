@@ -11,10 +11,15 @@ package nui;
 	  *this one property* in `NodeSink.bindReactive`, which is what gives
 	  per-binding granularity: a write re-applies one property, with no tree
 	  walk and no diff.
-	- `PCallbackString` / `PCallbackFloat` / `PCallbackInt` — the renderer reads
-	  the **live value of the native control** and passes it to the callback.
-	  This is what makes a two-way control work: the text in the field is the
-	  truth at the moment of the tap, not what Haxe last wrote.
+	- `PCallbackString` / `PCallbackFloat` / `PCallbackInt` / `PCallbackBool` —
+	  the renderer reads the **live value of the native control** and passes it
+	  to the callback. This is what makes a two-way control work: the text in
+	  the field is the truth at the moment of the tap, not what Haxe last wrote.
+
+	`PCallbackBool` joined the other three when `wui` wired a switch for real.
+	Its absence had no workaround worth having: reporting 0 or 1 through the
+	integer handler would describe a boolean as a number, in the one place the
+	contract exists to be exact about what a control hands back.
 **/
 enum PropValue {
 	PString(v:String);
@@ -33,6 +38,9 @@ enum PropValue {
 
 	/** Handler that receives the control's live integer value. **/
 	PCallbackInt(fn:Int->Void);
+
+	/** Handler that receives the control's live on/off state. **/
+	PCallbackBool(fn:Bool->Void);
 
 	/** Deferred value; the renderer binds it through `bindReactive`. **/
 	PReactive(thunk:Void->PropValue);
@@ -74,6 +82,7 @@ class PropValueTools {
 			case [PCallbackString(x), PCallbackString(y)]: Reflect.compareMethods(x, y);
 			case [PCallbackFloat(x), PCallbackFloat(y)]: Reflect.compareMethods(x, y);
 			case [PCallbackInt(x), PCallbackInt(y)]: Reflect.compareMethods(x, y);
+			case [PCallbackBool(x), PCallbackBool(y)]: Reflect.compareMethods(x, y);
 			case _: false;
 		}
 	}
