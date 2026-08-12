@@ -50,6 +50,7 @@ enum PropValue {
     PCallbackString(fn:String->Void);
     PCallbackFloat(fn:Float->Void);
     PCallbackInt(fn:Int->Void);
+    PCallbackBool(fn:Bool->Void);
     PReactive(thunk:Void->PropValue);
 }
 ```
@@ -61,10 +62,15 @@ application of *that one property* in `bindReactive`, which is what gives
 per-binding granularity: a write re-applies one property, with no tree walk and no
 diff.
 
-**The read-back callbacks** (`PCallbackString` / `Float` / `Int`) are handed the
+**The read-back callbacks** (`PCallbackString` / `Float` / `Int` / `Bool`) are handed the
 **live value of the native control** rather than what Haxe last wrote. That is what
 makes a two-way control correct: at the moment of the tap, the truth is what is in
 the field.
+
+`PCallbackBool` joined the other three when `wui` wired a switch for real. Its
+absence had no workaround worth having: reporting 0 or 1 through the integer
+handler would describe a boolean as a number, in the one place this contract
+exists to be exact about what a control hands back.
 
 `PropValueTools.resolve` collapses a thunk (nested ones included) to a concrete
 value; `PropValueTools.equals` compares the **resolved** contents, so a
