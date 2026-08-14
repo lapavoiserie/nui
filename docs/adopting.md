@@ -42,7 +42,7 @@ nothing crosses. Giving it a real ordered chain is the one piece of genuine work
 
 Naming to align: `VNode` → `Node`, and `PropValue`'s integer tags → the enum.
 
-## `cui` — a pull candidate
+## `cui` — pull, confirmed
 
 `cui` renders with `measure(constraint)` then `render(buffer, area)` into a cell
 buffer, redrawing wholesale on a dirty flag. It consumes a tree and patches
@@ -54,8 +54,29 @@ terminal has **no widget state to lose**, so repainting from a freshly walked
 tree costs nothing. `cui` is therefore a natural **pull** candidate, closer to
 SwiftUI in this one respect than to Qt.
 
-Still left open on purpose: confirm it once the others have adopted, with
-evidence, rather than forcing the fit in advance.
+Confirmed since: `cui` implements `NodeSource`, and `pui` reached the same answer
+independently. `mui/docs/adding-a-backend.md`, which filed a terminal under push,
+has been corrected.
+
+## `pui` — pull, and the second library that draws its own widgets
+
+`pui` owns its surface on five platforms and rebuilds its whole tree on any
+write. What has to survive a rebuild — focus, scroll offset, caret, animation
+phases — lives in a store indexed by path rather than in the views, so by the
+criterion above there is no widget state at all: **pull**, and no `NodeSink`,
+because push exists to patch retained controls and `pui` has none.
+
+Two of its answers are richer than `cui`'s. `keyOf` returns a real key, since a
+`pui` view can be `identifiedBy(...)`. And `rebuild()` marks a build bit rather
+than doing nothing, because `pui` distinguishes repaint from relayout from
+rebuild.
+
+One asymmetry is worth recording, because it is the first time a backend has had
+it. `pui` holds decoration as **fields** applied in a fixed order by `View.paint`,
+not as an array the application ordered. So the chain it emits is synthesised and
+always canonical — pad, fill, stroke, fade, cut. Replaying it reproduces what was
+drawn; reading it cannot recover an order that was never stored, because there
+was never a different one.
 
 ## `wui` — blocked, and it will land in push
 
