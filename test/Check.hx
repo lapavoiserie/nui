@@ -10,8 +10,12 @@ import nui.PropValue;
 **/
 class Check {
 	static var fails = 0;
+	// Counted rather than written down: a total in the docs that nobody
+	// recomputes drifts, and this one had - the docs said 23 for 29 checks.
+	static var checks = 0;
 
 	static function check(label:String, ok:Bool) {
+		checks++;
 		if (!ok) fails++;
 		Sys.println((ok ? "ok   " : "FAIL ") + label);
 	}
@@ -83,9 +87,9 @@ class Check {
 		check("asFloat sur absente", PropValueTools.asFloat(empty.props.get("nope"), 1.5) == 1.5);
 		check("asBool sur absente", PropValueTools.asBool(empty.props.get("nope"), true) == true);
 		check("stringProp sur absente ne plante pas", src.stringProp(empty, "nope") == "");
-		check("equals tolère null", !PropValueTools.equals(null, PInt(1)) && PropValueTools.equals(null, null));
+		check("equals tolerates null", !PropValueTools.equals(null, PInt(1)) && PropValueTools.equals(null, null));
 
-		Sys.println(fails == 0 ? "\nTOUT PASSE" : '\n$fails ÉCHEC(S)');
+		Sys.println(fails == 0 ? '\nall $checks checks passed' : '\n$fails failed');
 		#if sys
 		Sys.exit(fails == 0 ? 0 : 1);
 		#end

@@ -46,7 +46,7 @@ haxelib git nui https://github.com/lapavoiserie/nui
 ## Status
 
 Young. The vocabulary and both contracts are defined and covered by
-`test/Check.hx` (23 checks, including a toy implementation of each contract to
+`test/Check.hx` (29 checks, including a toy implementation of each contract to
 prove both are satisfiable):
 
 ```bash

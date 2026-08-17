@@ -68,5 +68,5 @@ haxelib git nui https://github.com/lapavoiserie/nui
 haxe -cp src -cp test -main Check --interp
 ```
 
-23 checks, including a toy implementation of each contract — the point being to
+29 checks, including a toy implementation of each contract — the point being to
 prove both are satisfiable, not just declarable.
