@@ -73,10 +73,18 @@ class Check {
 		check("NodeSink.create + applyProp", sink.log.join(",") == "create:VStack,prop:text=posé");
 
 		var wrapped = 0;
-		sink.bindReactive = function(f) { wrapped++; f(); };
-		sink.applyProp(native, "VStack", "label", PReactive(() -> PString("différé")));
-		check("NodeSink.bindReactive enveloppe l'application", wrapped == 1);
-		check("bindReactive résout le thunk", sink.log[sink.log.length - 1] == "prop:label=différé");
+		var stopped = 0;
+		sink.bindReactive = function(f) { wrapped++; f(); return () -> stopped++; };
+		sink.applyProp(native, "VStack", "label", PReactive(() -> PString("deferred")));
+		check("NodeSink.bindReactive wraps the application", wrapped == 1);
+		check("bindReactive resolves the thunk", sink.log[sink.log.length - 1] == "prop:label=deferred");
+
+		// A binding outlives its node unless destroy stops it: the effect it
+		// made is subscribed to signals the application keeps for its whole run,
+		// so a later write would apply a property to a freed handle.
+		check("a binding is not stopped before its node goes", stopped == 0);
+		sink.destroy(native);
+		check("destroy stops every binding made against the handle", stopped == 1);
 
 		// --- Propriété absente : le piège qui ne se voit qu'en compilé ---
 		// resolve(null) renvoie null, et un switch sur un enum null SEGFAULTE
@@ -154,9 +162,10 @@ class ToySource implements nui.NodeSource<Node> {
 class ToySink implements nui.NodeSink<String> {
 	public var log:Array<String> = [];
 
-	var _bind:(Void->Void)->Void = function(fn) fn();
+	var _bind:(Void->Void)->Null<Void->Void> = function(fn) { fn(); return null; };
+	var _bindings:Map<String, Array<Void->Void>> = new Map();
 
-	public var bindReactive(get, set):(Void->Void)->Void;
+	public var bindReactive(get, set):(Void->Void)->Null<Void->Void>;
 
 	function get_bindReactive() return _bind;
 
@@ -170,7 +179,7 @@ class ToySink implements nui.NodeSink<String> {
 	}
 
 	public function applyProp(target:String, type:String, key:String, value:PropValue):Void {
-		_bind(function() {
+		var stop = _bind(function() {
 			var resolved = PropValueTools.resolve(value);
 			var shown = switch (resolved) {
 				case PString(v): v;
@@ -181,6 +190,11 @@ class ToySink implements nui.NodeSink<String> {
 			}
 			log.push("prop:" + key + "=" + shown);
 		});
+		if (stop != null) {
+			var made = _bindings.get(target);
+			if (made == null) { made = []; _bindings.set(target, made); }
+			made.push(stop);
+		}
 	}
 
 	public function applyModifiers(target:String, type:String, modifiers:Array<Modifier>):Void {
@@ -191,5 +205,12 @@ class ToySink implements nui.NodeSink<String> {
 
 	public function remove(parent:String, child:String):Void log.push("remove:" + child);
 
-	public function destroy(target:String):Void log.push("destroy:" + target);
+	public function destroy(target:String):Void {
+		var made = _bindings.get(target);
+		if (made != null) {
+			_bindings.remove(target);
+			for (stop in made) stop();
+		}
+		log.push("destroy:" + target);
+	}
 }

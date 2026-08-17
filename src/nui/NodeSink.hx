@@ -24,7 +24,7 @@ package nui;
 	and no diff. That is how `qui` drives Silica, validated on device.
 
 	```haxe
-	sink.bindReactive = fn -> new rui.Signal.Effect(fn);
+	sink.bindReactive = fn -> { var e = new rui.Signal.Effect(fn); () -> e.dispose(); };
 	```
 **/
 /**
@@ -88,11 +88,49 @@ interface NodeSink<Native> {
 
 	function insert(parent:Native, child:Native, index:Int):Void;
 	function remove(parent:Native, child:Native):Void;
+
+	/**
+		Release the handle — **and every binding made against it**.
+
+		A sink that gives properties their own effects through `bindReactive`
+		must stop them here. Nobody else can: the driver never sees them, and the
+		signals they read commonly outlive the whole subtree.
+	**/
 	function destroy(target:Native):Void;
 
 	/**
-		Wraps every property application. Default is immediate:
-		`function(fn) fn();`
+		Wraps every property application, and **hands back how to undo it**.
+
+		Default is immediate and undoes nothing: `function(fn) { fn(); return null; }`.
+		A backend that wants fine granularity gives each property its own effect
+		and returns the way to stop it:
+
+		```haxe
+		sink.bindReactive = fn -> {
+		    var effect = new rui.Signal.Effect(fn);
+		    return () -> effect.dispose();
+		};
+		```
+
+		## Why it returns something
+
+		It did not, and that was a defect rather than a simplification. An effect
+		created here subscribes to signals that **outlive the node** — a state an
+		application holds for its whole run — so a write after the node is gone
+		re-runs the binding and applies a property to a handle that has been
+		freed. `wui`'s reconciler already reasons exactly this way about the
+		effect that owns a *list*, and disposes it first in `destroyDeep`; the
+		per-property effects had the same hazard and no way to be reached, because
+		nothing returned them.
+
+		`Null<Void->Void>` rather than `rui.Signal.Effect`: what a binding is
+		belongs to the backend, and a sink that binds some other way should not
+		have to invent an `Effect` to satisfy a signature.
+
+		**Who calls it.** The sink itself, from `applyProp` and `applyModifiers`,
+		and the sink is what remembers the result — it already knows the target,
+		and `destroy(target)` is already the moment the contract gives it to let
+		go.
 	**/
-	var bindReactive(get, set):(Void->Void)->Void;
+	var bindReactive(get, set):(Void->Void)->Null<Void->Void>;
 }
