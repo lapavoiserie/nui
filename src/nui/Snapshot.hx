@@ -103,6 +103,56 @@ class Snapshot {
 
 	public static function fromJson(wire:String):SnapshotNode
 		return haxe.Json.parse(wire);
+
+	/**
+		The far side of the wire: a received snapshot back into a `Node` tree
+		a renderer can draw.
+
+		This is what makes a remote renderer nearly free instead of a project:
+		the inflated tree is ordinary `nui.Node`, so any backend's existing
+		`NodeRenderer` draws it — and every action prop comes back as a
+		closure that hands the id (and the control's live value, for the
+		typed shapes) to `invoke`, which is where the channel back to the
+		serving process plugs in. The renderer wires callbacks exactly as it
+		would for a local tree; it cannot tell the difference, which is the
+		point.
+
+		Scalar props inflate by JSON shape (Float when fractional, Int
+		otherwise, Bool, String); the receiving renderer reads them through
+		the null-safe `PropValueTools.as*` accessors like any other tree, so
+		a shape surprise degrades instead of crashing. Which callback SHAPE an
+		action prop had is knowledge the serving side's table kept — here every
+		action inflates as `PCallbackString`, the shape that can carry
+		anything, and `invoke`'s table parses the string against the recorded
+		truth. A renderer that fires a plain click through it sends "" — the
+		table's `PCallback` case ignores the argument either way.
+	**/
+	public static function inflate(snap:SnapshotNode, invoke:(id:Int, arg:String) -> Void):Node {
+		if (snap == null) return null;
+		var node = new Node(snap.type, snap.key);
+		if (snap.props != null) {
+			for (key in snap.props.keys()) {
+				var v:Dynamic = snap.props.get(key);
+				if (Std.isOfType(v, Bool)) node.prop(key, PBool(v));
+				else if (Std.isOfType(v, String)) node.prop(key, PString(v));
+				else if (Std.isOfType(v, Int)) node.prop(key, PInt(v));
+				else if (Std.isOfType(v, Float)) node.prop(key, PFloat(v));
+				// Anything else came off a wire this shape never writes:
+				// dropped, and the null-safe readers answer the default.
+			}
+		}
+		if (snap.actions != null) {
+			for (key in snap.actions.keys()) {
+				var id = snap.actions.get(key);
+				node.prop(key, PCallbackString(arg -> invoke(id, arg)));
+			}
+		}
+		if (snap.modifiers != null)
+			for (m in snap.modifiers) node.modifier(m);
+		if (snap.children != null)
+			for (child in snap.children) node.child(inflate(child, invoke));
+		return node;
+	}
 }
 
 /**

@@ -38,3 +38,20 @@ snapshot classifies against a complete picture.
   retires a generation.
 - **Types live in the table, not on the wire.** The argument crosses as a
   string; the recorded callback shape says how to read it.
+
+## The far side: `inflate`
+
+A received snapshot becomes an ordinary `Node` tree — which is what makes a
+remote renderer nearly free instead of a project: any backend's existing
+`NodeRenderer` draws it, and every action prop inflates as a closure handing
+its id (plus the control's live value) back to the channel you supply.
+
+```haxe
+var tree = nui.Snapshot.inflate(nui.Snapshot.fromJson(wire),
+    (id, arg) -> channel.sendAction(id, arg));
+// hand `tree` to the backend's NodeRenderer; callbacks route themselves
+```
+
+The callback *shape* stayed on the serving side, in its table; here every
+action is `PCallbackString` (the shape that carries anything), and the table
+parses the argument against the recorded truth.

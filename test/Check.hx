@@ -135,6 +135,29 @@ class Check {
 		table.invoke(back.children[1].actions.get("onClick"));
 		check("a cleared generation answers nothing", taps.length == 1);
 
+		// --- Inflate: the far side of the wire ---
+		// A received snapshot becomes an ordinary Node tree whose actions are
+		// closures handing ids back - a NodeRenderer cannot tell the difference.
+		var sentIds = [];
+		var sentArgs = [];
+		var remote = nui.Snapshot.inflate(back, (id, arg) -> { sentIds.push(id); sentArgs.push(arg); });
+		check("an inflated tree is ordinary nodes", remote.type == "VStack" && remote.children.length == 4);
+		check("scalar props inflate to their shapes",
+			PropValueTools.asString(remote.children[0].props.get("text")) == "sampled");
+		check("modifiers survive the roundtrip", remote.children[1].modifiers[0].type == "padding");
+		var clickBack = remote.children[1].props.get("onClick");
+		switch (clickBack) {
+			case PCallbackString(fn): fn("");
+			case _:
+		}
+		check("an inflated action hands its id back over the channel",
+			sentIds.length == 1 && sentIds[0] == back.children[1].actions.get("onClick"));
+		switch (remote.children[2].props.get("onText")) {
+			case PCallbackString(fn): fn("typed remotely");
+			case _:
+		}
+		check("a typed action carries the remote value", sentArgs[1] == "typed remotely");
+
 		Sys.println(fails == 0 ? '\nall $checks checks passed' : '\n$fails failed');
 		#if sys
 		Sys.exit(fails == 0 ? 0 : 1);
