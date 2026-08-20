@@ -33,9 +33,12 @@ snapshot classifies against a complete picture.
   surfaces must not share a namespace.
 - **Ids are monotonic and never reused.** A stale id names a hole — the
   policy every backend's handle table keeps.
-- **A late tap is data.** A remote surface can invoke one generation behind;
-  `invoke` on a dead id degrades with a word, never a crash. `clear()`
-  retires a generation.
+- **Ids are stable by place.** `project` keys each action by its node path
+  and prop, so the same button in the same slot keeps its id across
+  generations (closure updated) — a tap racing a re-projection does what the
+  unchanged button says. Keyed children keep ids across reorders.
+- **A late tap on a *retired* id is data.** Only a control that left the
+  tree retires; `invoke` on its id degrades with a word, never a crash.
 - **Types live in the table, not on the wire.** The argument crosses as a
   string; the recorded callback shape says how to read it.
 

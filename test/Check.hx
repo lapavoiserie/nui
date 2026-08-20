@@ -158,6 +158,38 @@ class Check {
 		}
 		check("a typed action carries the remote value", sentArgs[1] == "typed remotely");
 
+		// --- Stable ids by place: the tap-vs-beat race, closed ---
+		// The serving state beat every 2s, each beat cleared the table, and a
+		// human's Enter reliably found a freshly-retired id. Same place, same
+		// id; the closure is the CURRENT one; only a vanished control retires.
+		var hits = [];
+		var gen1tree = new Node("VStack")
+			.child(new Node("Button").prop("onClick", PCallback(() -> hits.push("old"))));
+		var stable = new nui.Snapshot.ActionTable();
+		var g1 = nui.Snapshot.project(gen1tree, stable);
+		var gen2tree = new Node("VStack")
+			.child(new Node("Button").prop("onClick", PCallback(() -> hits.push("new"))));
+		var g2 = nui.Snapshot.project(gen2tree, stable);
+		check("the same place keeps its id across generations",
+			g1.children[0].actions.get("onClick") == g2.children[0].actions.get("onClick"));
+		stable.invoke(g1.children[0].actions.get("onClick"));
+		check("a late tap runs the CURRENT closure - what the unchanged button says",
+			hits.length == 1 && hits[0] == "new");
+		var gen3tree = new Node("VStack").child(new Node("Text").prop("text", PString("gone")));
+		nui.Snapshot.project(gen3tree, stable);
+		stable.invoke(g2.children[0].actions.get("onClick"));
+		check("a control that left the tree retires its id", hits.length == 1);
+		var keyedA = new Node("List")
+			.child(new Node("Row", "a").prop("onClick", PCallback(() -> hits.push("a"))))
+			.child(new Node("Row", "b").prop("onClick", PCallback(() -> hits.push("b"))));
+		var ka = nui.Snapshot.project(keyedA, stable);
+		var keyedB = new Node("List")
+			.child(new Node("Row", "b").prop("onClick", PCallback(() -> hits.push("b2"))))
+			.child(new Node("Row", "a").prop("onClick", PCallback(() -> hits.push("a2"))));
+		var kb = nui.Snapshot.project(keyedB, stable);
+		check("a keyed row keeps its id when the list reorders",
+			ka.children[1].actions.get("onClick") == kb.children[0].actions.get("onClick"));
+
 		Sys.println(fails == 0 ? '\nall $checks checks passed' : '\n$fails failed');
 		#if sys
 		Sys.exit(fails == 0 ? 0 : 1);

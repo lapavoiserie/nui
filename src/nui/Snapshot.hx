@@ -33,11 +33,13 @@ import nui.Modifier;
 	and is parsed against the recorded shape — the wire has no types, the
 	table does).
 
-	A table belongs to one projection *generation*: project the next tree into
-	a fresh table (or `clear` this one) and hand the old ids their answer —
-	`invoke` on a cleared id is a no-op with a word, because a remote surface
-	may tap a button one round-trip after it died. That is a tree received as
-	data; it degrades, it never crashes.
+	Ids are STABLE BY PLACE across generations: `project` keys each action by
+	its node path and prop, so the same button in the same slot keeps its id
+	from one projection to the next, with the closure updated — a remote tap
+	arriving one generation late does what the unchanged button says. Only a
+	control that genuinely left the tree retires its id, and `invoke` on a
+	retired id is a no-op with a word: a tree received as data degrades, it
+	never crashes.
 **/
 typedef SnapshotNode = {
 	var type:String;
@@ -55,6 +57,29 @@ class Snapshot {
 		picture, the same reason sui's `classify` forces the lazy parts.
 	**/
 	public static function project(node:Node, table:ActionTable):SnapshotNode {
+		table.beginGeneration();
+		var out = projectAt(node, table, "");
+		table.sweep();
+		return out;
+	}
+
+	/**
+		The walk, carrying the node's PLACE as the action key.
+
+		Identity is the place, never the pointer — the house stance — so an
+		action's id is keyed by "path#prop": the same button in the same slot
+		keeps its id across generations, and a remote tap that arrives one
+		generation late invokes the CURRENT closure, which is what the button
+		means. A keyed node contributes its key instead of its index, so a
+		keyed row keeps its actions when the list reorders. Only a control
+		that genuinely left the tree retires its id.
+
+		Paid for on the very first interactive companion: the serving state
+		beat every two seconds, each beat cleared the whole table, and a
+		human's Enter reliably found a freshly-retired id — "stale remote
+		tap" on a button that had not changed at all.
+	**/
+	static function projectAt(node:Node, table:ActionTable, path:String):SnapshotNode {
 		if (node == null) return null;
 		var out:SnapshotNode = {type: node.type};
 		if (node.key != null) out.key = node.key;
@@ -74,7 +99,7 @@ class Snapshot {
 					case PBool(v): props.set(key, v); hasProps = true;
 					case PCallback(_) | PCallbackString(_) | PCallbackFloat(_)
 						| PCallbackInt(_) | PCallbackBool(_):
-						actions.set(key, table.register(resolved));
+						actions.set(key, table.registerAt(path + "#" + key, resolved));
 						hasActions = true;
 					case PReactive(_):
 						// resolve() runs reactives to a fixed point; reaching
@@ -90,8 +115,14 @@ class Snapshot {
 			out.modifiers = node.modifiers;
 
 		var kids = node.resolveChildren();
-		if (kids != null && kids.length > 0)
-			out.children = [for (child in kids) project(child, table)];
+		if (kids != null && kids.length > 0) {
+			out.children = [];
+			for (i in 0...kids.length) {
+				var child = kids[i];
+				var seg = child != null && child.key != null ? "k" + child.key : Std.string(i);
+				out.children.push(projectAt(child, table, path + "/" + seg));
+			}
+		}
 
 		return out;
 	}
@@ -168,13 +199,57 @@ class ActionTable {
 	var _next:Int = 0;
 	var _actions:Map<Int, PropValue> = new Map();
 
+	// Place-key -> id, so the same control in the same slot keeps its id
+	// across generations; _renewed marks which keys this generation still
+	// declares, and sweep() retires the rest.
+	var _idsByKey:Map<String, Int> = new Map();
+	var _renewed:Map<String, Bool> = new Map();
+
 	public function new() {}
 
-	/** Register one callback-carrying value; the id is what crosses. **/
+	/** Register one callback-carrying value; the id is what crosses. For
+		anonymous one-shot use — a projection keys by place through
+		`registerAt` instead, which is what keeps ids stable. **/
 	public function register(callback:PropValue):Int {
 		var id = _next++;
 		_actions.set(id, callback);
 		return id;
+	}
+
+	/** Open a generation: every keyed id is up for retirement until its key
+		is renewed. `Snapshot.project` brackets this itself. **/
+	public function beginGeneration():Void {
+		_renewed = new Map();
+	}
+
+	/**
+		Register under a stable place key. A known key keeps its id and gets
+		the CURRENT closure — so a remote tap arriving one generation late
+		still does what the unchanged button says. A new key gets a fresh,
+		monotonic id.
+	**/
+	public function registerAt(key:String, callback:PropValue):Int {
+		_renewed.set(key, true);
+		var existing = _idsByKey.get(key);
+		if (existing != null) {
+			_actions.set(existing, callback);
+			return existing;
+		}
+		var id = _next++;
+		_idsByKey.set(key, id);
+		_actions.set(id, callback);
+		return id;
+	}
+
+	/** Close a generation: keys the projection no longer declared retire —
+		their ids become holes that `invoke` answers with a word. **/
+	public function sweep():Void {
+		for (key in _idsByKey.keys()) {
+			if (_renewed.exists(key)) continue;
+			var id = _idsByKey.get(key);
+			_idsByKey.remove(key);
+			if (id != null) _actions.remove(id);
+		}
 	}
 
 	/**
@@ -211,5 +286,7 @@ class ActionTable {
 		"not live", said once per id by `invoke`. **/
 	public function clear():Void {
 		_actions.clear();
+		_idsByKey.clear();
+		_renewed.clear();
 	}
 }
