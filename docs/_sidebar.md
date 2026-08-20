@@ -3,4 +3,5 @@
 - **Contracts**
   - [Pull mode](pull-mode.md)
   - [Push mode](push-mode.md)
+  - [Snapshot](snapshot.md)
 - [Adopting nui](adopting.md)

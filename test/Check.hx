@@ -97,6 +97,44 @@ class Check {
 		check("stringProp sur absente ne plante pas", src.stringProp(empty, "nope") == "");
 		check("equals tolerates null", !PropValueTools.equals(null, PInt(1)) && PropValueTools.equals(null, null));
 
+		// --- Snapshot: the tree as pure data, closures as ids ---
+		var taps = [];
+		var typedIn = "";
+		var live = new Node("VStack")
+			.child(new Node("Text").prop("text", PReactive(() -> PString("sampled"))))
+			.child(new Node("Button", "go")
+				.prop("label", PString("Go"))
+				.prop("onClick", PCallback(() -> taps.push(1)))
+				.modifier({type: "padding", floats: [8]}))
+			.child(new Node("Field").prop("onText", PCallbackString(t -> typedIn = t)));
+		var lazy = new Node("List");
+		lazy.childrenThunk = () -> [new Node("Row", "r0")];
+		live.child(lazy);
+
+		var table = new nui.Snapshot.ActionTable();
+		var snap = nui.Snapshot.project(live, table);
+		check("a reactive prop is sampled to its scalar", snap.children[0].props.get("text") == "sampled");
+		check("a scalar prop crosses as itself", snap.children[1].props.get("label") == "Go");
+		check("a callback becomes an id, not a prop", snap.children[1].props.get("onClick") == null
+			&& snap.children[1].actions.get("onClick") != null);
+		check("modifiers ride along as plain data", snap.children[1].modifiers[0].type == "padding");
+		check("children thunks are forced - a snapshot samples the whole picture",
+			snap.children[3].children.length == 1 && snap.children[3].children[0].key == "r0");
+
+		// The wire: Json both ways, then the actions still answer.
+		var back = nui.Snapshot.fromJson(nui.Snapshot.toJson(snap));
+		check("the snapshot survives the wire", back.children[1].actions.get("onClick") == snap.children[1].actions.get("onClick")
+			&& back.children[0].props.get("text") == "sampled");
+		table.invoke(back.children[1].actions.get("onClick"));
+		check("a remote tap reaches the closure by id", taps.length == 1);
+		table.invoke(back.children[2].actions.get("onText"), "hello");
+		check("a typed action carries the live value back", typedIn == "hello");
+		table.invoke(999);
+		check("a stale id is a word, never a crash", true);
+		table.clear();
+		table.invoke(back.children[1].actions.get("onClick"));
+		check("a cleared generation answers nothing", taps.length == 1);
+
 		Sys.println(fails == 0 ? '\nall $checks checks passed' : '\n$fails failed');
 		#if sys
 		Sys.exit(fails == 0 ? 0 : 1);
