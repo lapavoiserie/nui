@@ -58,8 +58,12 @@ Run both. `--interp` tolerates things a compiled target does not — notably
 `switch` on a null enum, which segfaults under hxcpp and is exactly how an absent
 property behaves.
 
-No backend has adopted it yet — that is the next step, `aui` first, since its
-existing bridge is a strict subset of `sui`'s and the gap is pure filling-in.
+Every backend has adopted it: `cui`, `pui`, `sui`, `aui` on the pull
+contract, `qui` and `wui` on push — the per-backend notes live in
+[adopting](docs/adopting.md). The model also has a third face now: the
+[snapshot contract](docs/snapshot.md) ships a tree as pure data across a
+process boundary, closures replaced by stable action ids — which is what a
+Companion surface projects and a widget snapshot will ship.
 
 ## License
 
