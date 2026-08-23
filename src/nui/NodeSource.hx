@@ -65,6 +65,15 @@ interface NodeSource<Node> {
 	**/
 	function actionId(n:Node):Int;
 
-	/** Run the node's action. **/
+	/**
+		Run the node's action.
+
+		**Inside `rui.Signal.Scheduler.batch`.** One gesture is one picture: a
+		handler that writes three cells should re-run what reads them once,
+		not three times, and only the implementation knows where its host's
+		event arrives. The scope is cheap — state sinks are called directly by
+		`State.set` and never wait on it, so batching delays nothing a person
+		can see.
+	**/
 	function invokeAction(n:Node):Void;
 }

@@ -265,7 +265,12 @@ class ActionTable {
 			trace('nui.ActionTable: action $id is not live (a stale remote tap?); ignored');
 			return;
 		}
-		switch (action) {
+		// One gesture, one re-projection. A closure that writes three cells
+		// would otherwise wake the follower three times and publish three
+		// pictures, of which only the last was ever going to be seen — and on
+		// a snapshot surface those intermediate frames are not just wasted
+		// work, they are a widget reload budget spent on nothing.
+		rui.Signal.Scheduler.batch(() -> switch (action) {
 			case PCallback(fn): fn();
 			case PCallbackString(fn): fn(arg != null ? arg : "");
 			case PCallbackFloat(fn):
@@ -279,7 +284,7 @@ class ActionTable {
 			case PCallbackBool(fn): fn(arg == "true" || arg == "1");
 			case _:
 				trace('nui.ActionTable: action $id holds no callback; ignored');
-		}
+		});
 	}
 
 	/** Retire every id — the previous generation's answer to a late tap is

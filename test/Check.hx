@@ -6,7 +6,7 @@ import nui.PropValue;
 	Standalone check of the node model, and a toy implementation of each
 	contract to prove both are satisfiable.
 
-	    haxe -cp src -cp test -main Check --interp
+	    haxe -cp src -cp test -lib rui -main Check --interp
 **/
 class Check {
 	static var fails = 0;
@@ -189,6 +189,61 @@ class Check {
 		var kb = nui.Snapshot.project(keyedB, stable);
 		check("a keyed row keeps its id when the list reorders",
 			ka.children[1].actions.get("onClick") == kb.children[0].actions.get("onClick"));
+
+		// --- Following: a snapshot keeps itself current ---
+		var a = new rui.state.State(0);
+		var b = new rui.state.State(0);
+		var published = [];
+		var followed = nui.Follow.tree(() -> {
+			var n = new Node("VStack");
+			n.child(new Node("Text").prop("text", PString("a=" + a.get() + " b=" + b.get())));
+			// One button whose closure writes BOTH cells: the shape a batch
+			// exists for, and the one that used to publish twice.
+			n.child(new Node("Button").prop("click", PCallback(() -> {
+				a.set(a.peek() + 1);
+				b.set(b.peek() + 1);
+			})));
+			return n;
+		}, snap -> published.push(nui.Snapshot.toJson(snap)));
+
+		check("a follower publishes on its first run", published.length == 1);
+
+		a.set(5);
+		check("a write republishes", published.length == 2);
+		check("and the new picture carries the value", published[1].indexOf("a=5") >= 0);
+
+		var beforeTap = published.length;
+		var clickId = -1;
+		var lastSnap = nui.Snapshot.fromJson(published[published.length - 1]);
+		for (childSnap in lastSnap.children)
+			if (childSnap.actions != null && childSnap.actions.exists("click"))
+				clickId = childSnap.actions.get("click");
+		check("the button's id is in the snapshot", clickId >= 0);
+
+		// The plan's own wording: a closure that writes three cells produces
+		// one sample, not three. Two here, and without the batch this was two
+		// publishes for one tap.
+		followed.invoke(clickId);
+		check("a tap writing two cells publishes ONCE", published.length == beforeTap + 1);
+		check("and the picture carries both writes", published[published.length - 1].indexOf("a=6 b=1") >= 0);
+
+		// A second process follows in order to ACT, not to show: its first run
+		// would otherwise publish its own pre-tap state over the picture the
+		// application put there.
+		var quiet = [];
+		var acting = nui.Follow.tree(() -> new Node("Text").prop("text", PString("v=" + a.get())), snap -> quiet.push(1), false);
+		check("publishFirst=false does not publish the seeding run", quiet.length == 0);
+		a.set(9);
+		check("but follows normally afterwards", quiet.length == 1);
+		acting.dispose();
+
+		// Counted here rather than before `acting`: the write above moved a
+		// cell BOTH followers read, so it legitimately republished this one
+		// too. A test that assumed otherwise would have blamed dispose.
+		var beforeDispose = published.length;
+		followed.dispose();
+		a.set(100);
+		check("a disposed follower publishes nothing", published.length == beforeDispose);
 
 		Sys.println(fails == 0 ? '\nall $checks checks passed' : '\n$fails failed');
 		#if sys
