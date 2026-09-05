@@ -10,6 +10,7 @@ import nui.PropValue;
 **/
 class Check {
 	static var fails = 0;
+	static var tapped = 0;
 	// Counted rather than written down: a total in the docs that nobody
 	// recomputes drifts, and this one had - the docs said 23 for 29 checks.
 	static var checks = 0;
@@ -244,6 +245,41 @@ class Check {
 		followed.dispose();
 		a.set(100);
 		check("a disposed follower publishes nothing", published.length == beforeDispose);
+
+		// --- SelfSource: the pull contract over nui's own nodes ---
+		//
+		// What a sink needs: a tree that ARRIVED is already Nodes, with nothing
+		// underneath to walk. Reading it directly is the identity, so unlike an
+		// inverse describer there is no name table that can drift.
+		var received = new Node("VStack")
+			.prop("spacing", PInt(4))
+			.modifier({type: "padding", floats: [8]})
+			.child(new Node("Text").prop("text", PString("hello")))
+			.child(new Node("Button", "act")
+				.prop("label", PString("Tap"))
+				.prop("onClick", PCallbackString(_ -> tapped++)));
+
+		var src = new nui.SelfSource(() -> received);
+		check("the source reads the root type", src.typeOf(src.root()) == "VStack");
+		check("children are counted", src.childCount(src.root()) == 2);
+		check("a string prop reads through", src.stringProp(src.childAt(src.root(), 0), "text") == "hello");
+		check("an int prop reads through", src.intProp(src.root(), "spacing") == 4);
+		check("modifiers survive", src.modifierType(src.root(), 0) == "padding" && src.modifierFloat(src.root(), 0, 0) == 8);
+		check("a key the sender gave is passed on", src.keyOf(src.childAt(src.root(), 1)) == "act");
+		check("a node with no action says so", src.actionId(src.childAt(src.root(), 0)) < 0);
+
+		var button = src.childAt(src.root(), 1);
+		var id = src.actionId(button);
+		check("a node with one gets an id", id >= 0);
+		src.invokeActionId(id);
+		check("and the id runs the closure", tapped == 1);
+
+		// A sink replaces its tree on every generation; the renderer must see
+		// the new one after `rebuild` without being handed a new source.
+		received = new Node("VStack").child(new Node("Text").prop("text", PString("second")));
+		check("before rebuild the old tree is still served", src.stringProp(src.childAt(src.root(), 0), "text") == "hello");
+		src.rebuild();
+		check("after rebuild the new one is", src.stringProp(src.childAt(src.root(), 0), "text") == "second");
 
 		Sys.println(fails == 0 ? '\nall $checks checks passed' : '\n$fails failed');
 		#if sys
