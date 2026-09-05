@@ -99,3 +99,35 @@ green under `--interp` all along. **Run your checks on a compiled target too.**
 parses. `nui` requires the four typed accessors plus `hasProp`, matching what
 `sui` already does. It is filling-in work, not redesign, and it removes a class of
 silent parse failures.
+
+## `SelfSource` — the contract over nui's own nodes
+
+Every backend implements `NodeSource` over *its* view type, which is right for
+a tree the application is drawing and useless for one that **arrived**: a
+received tree is already `Node`s, with nothing underneath to walk.
+
+```haxe
+var tree = Snapshot.inflate(received, (id, arg) -> channel.send(id, arg));
+var source = new nui.SelfSource(() -> tree);
+// hand `source` to a backend's renderer
+```
+
+A sink had two ways out. Convert the received tree into the backend's views —
+writing that backend's describer backwards, and keeping two name tables in step
+— or read the nodes directly. This is the second, and it has **no table at
+all**: reading `type`, `props` and `children` off a `Node` is the identity, so
+nothing can drift. The first way is the drift that made a native setter throw
+`label` away in silence.
+
+The thunk matters: a sink replaces its tree every generation, and `rebuild`
+must show the new one without the renderer being handed a new source.
+
+Action ids here are positional **within a generation**. The ids that survive a
+re-projection are `Snapshot`'s, keyed by place on the serving side; these are
+only the handle a renderer holds between drawing a control and somebody
+touching it.
+
+A backend whose renderer takes a `NodeSource` can therefore draw a foreign tree
+without knowing it is foreign — which is what this contract has always claimed,
+and what `SelfSource` lets a backend honour. `aui` does, through
+`ViewNodeBridge.readThrough`.
