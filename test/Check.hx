@@ -22,6 +22,64 @@ class Check {
 		Sys.println((ok ? "ok   " : "FAIL ") + label + (ok || got == null ? "" : '  (got: $got)'));
 	}
 
+	/**
+		A TrueType file with a `name` and an `OS/2` table, and nothing else.
+
+		Enough for `FontFile`: the table directory, the two records it reads,
+		and the version that begins every TrueType file.
+	**/
+	static function font(family:String, subfamily:String, weight:Int, italic:Bool):haxe.io.Bytes {
+		var out = new haxe.io.BytesBuffer();
+		function u16(v:Int) {
+			out.addByte((v >> 8) & 0xFF);
+			out.addByte(v & 0xFF);
+		}
+		function u32(v:Int) {
+			out.addByte((v >>> 24) & 0xFF);
+			out.addByte((v >> 16) & 0xFF);
+			out.addByte((v >> 8) & 0xFF);
+			out.addByte(v & 0xFF);
+		}
+
+		// The name table: two records (family is 1, subfamily 2), Macintosh
+		// platform, so one byte a character.
+		var names = new haxe.io.BytesBuffer();
+		var storage = 6 + 2 * 12;
+		names.addByte(0); names.addByte(0);                 // format
+		names.addByte(0); names.addByte(2);                 // two records
+		names.addByte((storage >> 8) & 0xFF); names.addByte(storage & 0xFF);
+		var at = 0;
+		for (entry in [{id: 1, text: family}, {id: 2, text: subfamily}]) {
+			names.addByte(0); names.addByte(1);              // platform: Macintosh
+			names.addByte(0); names.addByte(0);              // encoding
+			names.addByte(0); names.addByte(0);              // language
+			names.addByte(0); names.addByte(entry.id);
+			names.addByte((entry.text.length >> 8) & 0xFF); names.addByte(entry.text.length & 0xFF);
+			names.addByte((at >> 8) & 0xFF); names.addByte(at & 0xFF);
+			at += entry.text.length;
+		}
+		names.addString(family);
+		names.addString(subfamily);
+		var nameTable = names.getBytes();
+
+		// OS/2: only usWeightClass (offset 4) and fsSelection (62) are read.
+		var os2 = haxe.io.Bytes.alloc(78);
+		os2.set(4, (weight >> 8) & 0xFF);
+		os2.set(5, weight & 0xFF);
+		os2.set(63, italic ? 1 : 0);
+
+		var directory = 12 + 2 * 16;
+		u32(0x00010000);                                     // the version that broke on HashLink
+		u16(2); u16(0); u16(0); u16(0);                      // two tables
+		out.addString("OS/2");
+		u32(0); u32(directory); u32(os2.length);
+		out.addString("name");
+		u32(0); u32(directory + os2.length); u32(nameTable.length);
+		out.add(os2);
+		out.add(nameTable);
+		return out.getBytes();
+	}
+
 	static function main() {
 		// --- Node ---
 		var text = new Node("Text").prop("text", PString("bonjour"));
@@ -354,6 +412,21 @@ class Check {
 		check("no name twice", Lambda.count([for (n in nui.Icons.NAMES) n => true]) == nui.Icons.NAMES.length);
 		check("a name is known, a cut is not", nui.Icons.knows("mic-off") && !nui.Icons.knows("cut") && !nui.Icons.knows(null));
 		check("an unlabelled icon still says something", nui.Icons.spoken("speaker-off") == "speaker off");
+
+		// --- What a font file says about itself ---
+		//
+		// The file is made here rather than shipped: a real font is somebody
+		// else's to license, and what has to be exercised is the parsing --
+		// including the four bytes 00 01 00 00 that begin a TrueType file,
+		// which is where this broke on HashLink when they were read as text.
+		var regular = nui.FontFile.read(font("Farceur Sans", "Regular", 400, false));
+		check("a font file says its family", regular != null && regular.family == "Farceur Sans", regular);
+		check("its weight", regular.weight == 400);
+		check("and whether it is italic", !regular.italic);
+		var bold = nui.FontFile.read(font("Farceur Sans", "Bold Italic", 700, true));
+		check("a bold italic face says both", bold != null && bold.weight == 700 && bold.italic, bold);
+		check("and what is not a font is not read", nui.FontFile.read(haxe.io.Bytes.ofString("not a font at all")) == null
+			&& nui.FontFile.read(haxe.io.Bytes.alloc(0)) == null);
 
 		// --- How a Text is set ---
 		check("the four scales, and anything else is running text", nui.TextStyle.SCALES.length == 4

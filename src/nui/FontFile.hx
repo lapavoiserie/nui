@@ -30,8 +30,14 @@ class FontFile {
 			at = int32(bytes, 12);
 			if (at < 0 || at + 12 > bytes.length) return null;
 		}
-		var version = bytes.getString(at, 4);
-		if (version != "\x00\x01\x00\x00" && version != "OTTO" && version != "true") return null;
+		// Read as a number, not as text. A TrueType file begins 00 01 00 00,
+		// and `getString` on bytes holding NUL decodes them as UTF-8 on
+		// HashLink: the comparison then fails for every TrueType font there,
+		// while passing everywhere else. Found by the Farceur session, reading
+		// its own fonts inside its engine. The tags below are letters and have
+		// no such trouble.
+		var version = int32(bytes, at);
+		if (version != 0x00010000 && version != 0x4F54544F && version != 0x74727565) return null;
 
 		var tables = int16(bytes, at + 4);
 		var name:Null<{offset:Int, length:Int}> = null;
