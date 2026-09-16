@@ -122,3 +122,22 @@ accessibility is then the renderer's job, not the tree's.
 screen reader says). Each backend maps the names to its platform's own icons, and
 colours the icon like text. A received name it does not know is drawn as its
 label.
+
+### `TextInput`
+
+`text`, `placeholder` (optional), and `onText`, which carries the whole value
+and not the key.
+
+**A received `text` is not applied to a field somebody is typing in** — the same
+rule a `Picker` has for a list that is open, and for the same reason. The value
+belongs to the sender, but during typing the sender is behind: a renderer that
+reapplied `text` on every frame would put the previous value back under the
+caret between two keystrokes.
+
+The defect that produced this paragraph, found by the Farceur session in a
+transition editor: type `A`, let the tree be rebuilt, type `B`, and the field
+reads `Fondu BA`. The caret was not lost — the text went backwards underneath
+it, and the caret was then clamped to the shorter value it could see. So what a
+field shows while it has focus is what was typed into it; when focus leaves, the
+value goes back to whoever owns it — including their version of it, if they
+disagreed with the edit.
