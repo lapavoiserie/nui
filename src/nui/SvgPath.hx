@@ -29,7 +29,7 @@ class SvgPath {
 		shape in.
 	**/
 	public static function contoursOf(paths:Array<String>, tolerance:Float = 0.05):Array<Array<Float>> {
-		var out = [];
+		var out:Array<Array<Float>> = [];
 		for (d in paths) for (c in contours(d, tolerance)) out.push(c);
 		return out;
 	}
@@ -285,18 +285,33 @@ class SvgPath {
 		}
 	}
 
+	/**
+		Two numbers, or nothing.
+
+		Typed and cast on the way out, and not for tidiness: `number()` answers
+		`Null<Float>`, so an array built from its answers is an array of
+		`Null<Float>`. On a dynamic target that is the same array; on HashLink
+		it is a different one -- an `ArrayObj` where the caller was promised an
+		`ArrayBytes_Float` -- and the first icon drawn brought the process down
+		with "Can't cast hl.types.ArrayObj to hl.types.ArrayBytes_Float". Found
+		by the Farceur session, drawing this library's icons under HashLink.
+	**/
 	function pair():Null<Array<Float>> {
 		var a = number();
 		var b = number();
-		return a == null || b == null ? null : [a, b];
+		if (a == null || b == null) return null;
+		var out:Array<Float> = [];
+		out.push((a : Float));
+		out.push((b : Float));
+		return out;
 	}
 
 	function numbers(count:Int):Null<Array<Float>> {
-		var out = [];
+		var out:Array<Float> = [];
 		for (_ in 0...count) {
 			var v = number();
 			if (v == null) return null;
-			out.push(v);
+			out.push((v : Float));
 		}
 		return out;
 	}
