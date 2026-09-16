@@ -16,10 +16,10 @@ class Check {
 	// recomputes drifts, and this one had - the docs said 23 for 29 checks.
 	static var checks = 0;
 
-	static function check(label:String, ok:Bool) {
+	static function check(label:String, ok:Bool, ?got:Dynamic) {
 		checks++;
 		if (!ok) fails++;
-		Sys.println((ok ? "ok   " : "FAIL ") + label);
+		Sys.println((ok ? "ok   " : "FAIL ") + label + (ok || got == null ? "" : '  (got: $got)'));
 	}
 
 	static function main() {
@@ -354,6 +354,36 @@ class Check {
 		check("no name twice", Lambda.count([for (n in nui.Icons.NAMES) n => true]) == nui.Icons.NAMES.length);
 		check("a name is known, a cut is not", nui.Icons.knows("mic-off") && !nui.Icons.knows("cut") && !nui.Icons.knows(null));
 		check("an unlabelled icon still says something", nui.Icons.spoken("speaker-off") == "speaker off");
+
+		// --- Icon shapes ---
+		var shapeless = [for (n in nui.Icons.NAMES) if (nui.IconShapes.of(n) == null) n];
+		check("every icon name has a shape", shapeless.length == 0, shapeless);
+		check("and nothing else has one", Lambda.count(nui.IconShapes.PATHS) == nui.Icons.NAMES.length && nui.IconShapes.of("cut") == null);
+		var outside = [];
+		var empty = [];
+		for (n in nui.Icons.NAMES) {
+			var cs = nui.SvgPath.contoursOf(nui.IconShapes.of(n));
+			if (cs.length == 0) empty.push(n);
+			for (c in cs) for (v in c) if (Math.isNaN(v) || v < -0.5 || v > 24.5) { outside.push(n); break; }
+		}
+		check("every shape reads to contours", empty.length == 0, empty);
+		check("inside its 24-unit square", outside.length == 0, outside);
+
+		var square = nui.SvgPath.contours("M2 2h4v4H2z");
+		check("a square is one contour of four points, closed without repeating the first", square.length == 1 && square[0].join(",") == "2,2,6,2,6,6,2,6", square);
+		var relative = nui.SvgPath.contours("m1,1 l2,0 0,2 -2,0z m5,5 h1 v1 h-1 z");
+		check("relative commands, implicit linetos, two subpaths", relative.length == 2
+			&& relative[0].join(",") == "1,1,3,1,3,3,1,3" && relative[1].slice(0, 2).join(",") == "6,6", relative);
+		check("numbers that touch: -0.3-0.4 and .5.5", nui.SvgPath.contours("M0-0.3L.5.5 1-1z")[0].join(",") == "0,-0.3,0.5,0.5,1,-1");
+		var circle = nui.SvgPath.contours("M4,12a8,8 0 1,0 16,0a8,8 0 1,0 -16,0");
+		var off = 0.0;
+		for (c in circle) { var i = 0; while (i < c.length) { off = Math.max(off, Math.abs(Math.sqrt((c[i] - 12) * (c[i] - 12) + (c[i + 1] - 12) * (c[i + 1] - 12)) - 8)); i += 2; } }
+		check("an arc stays on its circle", circle.length == 1 && off < 0.01 && circle[0].length > 40, off);
+		check("and sweeps the way its flags say: through the bottom first", circle[0][3] > 12, circle[0].slice(0, 4));
+		var curve = nui.SvgPath.contours("M0 0C0 10 10 10 10 0z", 0.01)[0];
+		check("a cubic ends where it says and passes its midpoint", curve[curve.length - 2] == 10 && curve[curve.length - 1] == 0
+			&& Lambda.exists([for (k in 0...Std.int(curve.length / 2)) k], k -> Math.abs(curve[2 * k] - 5) < 0.2 && Math.abs(curve[2 * k + 1] - 7.5) < 0.2));
+		check("malformed data keeps what it read", nui.SvgPath.contours("M0 0L5 0L5 5L0 5Z M1 1 L ?").length == 1);
 
 		// A sink replaces its tree on every generation; the renderer must see
 		// the new one after `rebuild` without being handed a new source.
