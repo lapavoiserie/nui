@@ -355,6 +355,20 @@ class Check {
 		check("a name is known, a cut is not", nui.Icons.knows("mic-off") && !nui.Icons.knows("cut") && !nui.Icons.knows(null));
 		check("an unlabelled icon still says something", nui.Icons.spoken("speaker-off") == "speaker off");
 
+		// --- How a Text is set ---
+		check("the four scales, and anything else is running text", nui.TextStyle.SCALES.length == 4
+			&& nui.TextStyle.scaleOf("Title") == "title" && nui.TextStyle.scaleOf("caption") == "caption"
+			&& nui.TextStyle.scaleOf("largeTitle") == "body" && nui.TextStyle.scaleOf(null) == "body");
+		check("a scale is known or it is not", nui.TextStyle.knowsScale("subtitle") && !nui.TextStyle.knowsScale("headline")
+			&& !nui.TextStyle.knowsScale(null));
+		check("a weight is one a font file has: hundreds, 100 to 900", nui.TextStyle.weightOf(null) == 400
+			&& nui.TextStyle.weightOf(650) == 700 && nui.TextStyle.weightOf(1) == 100
+			&& nui.TextStyle.weightOf(20000) == 900 && nui.TextStyle.weightOf(Math.NaN) == 400);
+		check("and past six hundred it asks for more than ordinary text",
+			nui.TextStyle.isBold(600) && nui.TextStyle.isBold(900) && !nui.TextStyle.isBold(500));
+		check("numbers of one width are asked for by name", nui.TextStyle.isTabular("tabular")
+			&& nui.TextStyle.isTabular("Tabular") && !nui.TextStyle.isTabular("proportional") && !nui.TextStyle.isTabular(null));
+
 		// --- Icon shapes ---
 		var shapeless = [for (n in nui.Icons.NAMES) if (nui.IconShapes.of(n) == null) n];
 		check("every icon name has a shape", shapeless.length == 0, shapeless);

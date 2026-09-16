@@ -54,9 +54,30 @@ The model bakes that in so the third backend does not have to rediscover it.
 
 ## Nodes whose props carry rules
 
-Most canonical nodes are a name and a few scalar props. Three carry rules every
+Most canonical nodes are a name and a few scalar props. A few carry rules every
 backend must apply the same way, so the rules live here rather than in six
 renderers.
+
+### `Text`
+
+`text` (required), and how it is set: `scale` (`title`, `subtitle`, `body` — the
+default — or `caption`), `family` (a font the receiving application ships),
+`weight` (100 to 900), `italic`, and `numbers` (`tabular` for digits of one
+width, so a timecode does not jitter as it counts). `nui.TextStyle` says what
+each means and what an unknown value falls back to.
+
+**Props, not modifiers.** The modifier chain carried a "font" for a while, and
+that is exactly where the six backends drifted apart: one sent a step of its own
+vocabulary in `strings`, another read a pixel size from `floats`, a third
+discards inbound modifiers on purpose because it has properties and not
+modifiers, and a fourth emitted none at all — so a heading crossed as ordinary
+text on five backends out of six.
+
+**A family is a name, never a file.** A renderer uses it when the application it
+belongs to ships that family, and draws its own default otherwise, silently. A
+picture is pulled by content and verified because it is data on a screen;
+installing a typeface is an act on a machine. A backend with one font — a
+terminal — honours `weight`, `italic` and `numbers`, and ignores the rest.
 
 ### `Picker`
 
