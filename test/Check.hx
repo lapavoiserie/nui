@@ -1,6 +1,7 @@
 import nui.Node;
 import nui.Modifier;
 import nui.PropValue;
+import nui.PropValue.PropValueTools;
 
 /**
 	Standalone check of the node model, and a toy implementation of each
@@ -273,6 +274,35 @@ class Check {
 		check("a node with one gets an id", id >= 0);
 		src.invokeActionId(id);
 		check("and the id runs the closure", tapped == 1);
+
+		// A picker: its options are children, its action carries a position.
+		var picked = -1;
+		var pickerTree = new Node("Picker")
+			.prop("selectedIndex", PInt(2))
+			.prop("onSelect", PCallbackInt(i -> picked = i))
+			.child(new Node("Text").prop("text", PString("Cut")))
+			.child(new Node("Text").prop("text", PString("Fade")))
+			.child(new Node("Text").prop("text", PString("Wipe")));
+		var pickerSource = new nui.SelfSource(() -> pickerTree);
+		check("a picker's onSelect is an action", pickerSource.actionId(pickerSource.root()) >= 0);
+		pickerSource.invokeAction(pickerSource.root());
+		check("invoking it hands over the selected position", picked == 2);
+
+		// Across a wire: options stay children, and the position comes home as
+		// the text every inflated action carries.
+		var pickerTable = new nui.Snapshot.ActionTable();
+		var wire = nui.Snapshot.fromJson(nui.Snapshot.toJson(nui.Snapshot.project(pickerTree, pickerTable)));
+		var far = nui.Snapshot.inflate(wire, (actionId, arg) -> pickerTable.invoke(actionId, arg));
+		check("across a wire the options stay children, in order", far.children.length == 3
+			&& PropValueTools.asString(far.children[2].props.get("text")) == "Wipe");
+		var farSource = new nui.SelfSource(() -> far);
+		check("and the received picker still has its action", farSource.actionId(far) >= 0);
+		picked = -1;
+		switch (PropValueTools.resolve(far.props.get("onSelect"))) {
+			case PCallbackString(fn): fn("1");
+			case _:
+		}
+		check("a choice made far away runs the sender's closure with its position", picked == 1);
 
 		// A sink replaces its tree on every generation; the renderer must see
 		// the new one after `rebuild` without being handed a new source.

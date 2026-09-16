@@ -56,7 +56,7 @@ class SelfSource implements NodeSource<Node> {
 	/** The prop names an action can hide under, in the canonical vocabulary.
 		Kept here rather than guessed per call: a renderer asks `actionId`
 		without knowing whether it is holding a button or a switch. **/
-	static final ACTION_KEYS = ["onClick", "click", "onToggle", "onText", "onValue", "onSubmit"];
+	static final ACTION_KEYS = ["onClick", "click", "onToggle", "onText", "onValue", "onSelect", "onSubmit"];
 
 	public function new(content:() -> Node) {
 		this.content = content;
@@ -186,8 +186,9 @@ class SelfSource implements NodeSource<Node> {
 					case PCallbackFloat(fn):
 						fn(PropValueTools.asFloat(resolved(n, "value")));
 						return;
+					// A picker's action carries the position it selects.
 					case PCallbackInt(fn):
-						fn(PropValueTools.asInt(resolved(n, "value")));
+						fn(PropValueTools.asInt(resolved(n, key == "onSelect" ? "selectedIndex" : "value")));
 						return;
 					case _:
 				}
