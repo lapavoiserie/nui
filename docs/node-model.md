@@ -87,6 +87,14 @@ still arriving is drawn as the `alt`, never as a broken-image glyph. A received
 `https:` is refused unless the panel trusts the host because a panel that loaded
 any URL a tree named would contact any host its sender chose.
 
+### `Button`
+
+`label`, `onClick`, and `icon` (optional): a name from `nui.Icons`, drawn beside the
+label, or alone when the label is empty — then the icon's name is what a screen
+reader says. A backend that draws no icons draws the label. One icon, as a prop
+rather than a child, because a button has one icon and one label, and naming it for
+accessibility is then the renderer's job, not the tree's.
+
 ### `Icon`
 
 `name`, from `nui.Icons.NAMES`, and `label` (optional; absent, the name is what a
