@@ -136,4 +136,13 @@ class IconShapes {
 	/** The path data for a name, or null when it is not in the vocabulary. **/
 	public static function of(name:String):Null<Array<String>>
 		return name == null ? null : PATHS.get(name);
+
+	/**
+		Every contour of a shape as one path, the form an SVG path parser takes
+		(`SvgPath`, QML's `Context2D.path`). Empty when the name has no shape.
+	**/
+	public static function path(name:String):String {
+		var paths = of(name);
+		return paths == null ? "" : paths.join(" ");
+	}
 }
