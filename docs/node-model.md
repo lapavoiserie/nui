@@ -125,8 +125,22 @@ label.
 
 ### `TextInput`
 
-`text`, `placeholder` (optional), and `onText`, which carries the whole value
-and not the key.
+`text`, `placeholder` (optional), `onText`, which carries the whole value and
+not the key, and `onSubmit` (optional), which carries nothing and fires when
+the field is submitted — Enter, or whatever a platform means by it.
+
+**Both are optional, and which ones a node carries is the whole design.**
+`onText` says *this value is live*: every keystroke is worth hearing. That is
+right for a filter, a search box, a name shown elsewhere on the panel.
+
+A field with **`onSubmit` and no `onText`** is the other kind: one whose effect
+is an act. A page address that would load on every letter, a file path, a
+project name that saves. The renderer keeps what is being typed and reports
+nothing until it is submitted; nothing crosses until the person says so. This is
+the shape a panel used to hand-roll as "a draft plus a Rename button", which is
+a good interface and should not have to be built twice.
+
+A field with neither reports nothing and is read-only in practice.
 
 **A received `text` is not applied to a field somebody is typing in** — the same
 rule a `Picker` has for a list that is open, and for the same reason. The value
