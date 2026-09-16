@@ -304,6 +304,57 @@ class Check {
 		}
 		check("a choice made far away runs the sender's closure with its position", picked == 1);
 
+		// --- Image sources: what a src names, and what may be loaded ---
+		var hex = [for (_ in 0...64) "a"].join("");
+		function kindOf(k:nui.ImageSource.ImageSourceKind):String return Type.enumConstructor(k);
+		check("asset: a shipped file", switch (nui.ImageSource.parse("asset:farceur/logo.png")) {
+			case Asset("farceur/logo.png", null): true;
+			case _: false;
+		});
+		check("asset: with its sender's digest", switch (nui.ImageSource.parse('asset:logo.png#sha256=$hex')) {
+			case Asset("logo.png", d): d == hex;
+			case _: false;
+		});
+		check("an asset path may not climb out", kindOf(nui.ImageSource.parse("asset:../secret.png")) == "Invalid"
+			&& kindOf(nui.ImageSource.parse("asset:/etc/passwd")) == "Invalid"
+			&& kindOf(nui.ImageSource.parse("asset:a//b.png")) == "Invalid");
+		check("a malformed digest is refused", kindOf(nui.ImageSource.parse("asset:logo.png#sha256=zz")) == "Invalid");
+		check("blob: named by its content", switch (nui.ImageSource.parse('blob:sha256=$hex')) {
+			case Blob(d): d == hex;
+			case _: false;
+		});
+		check("https: with its host, lower-case", switch (nui.ImageSource.parse("https://Example.ORG:8443/a.png?x#y")) {
+			case Https(_, "example.org"): true;
+			case _: false;
+		});
+		check("a user part is not the host", switch (nui.ImageSource.parse("https://trusted.org@evil.net/a.png")) {
+			case Https(_, "evil.net"): true;
+			case _: false;
+		});
+		check("data: png or jpeg, base64", kindOf(nui.ImageSource.parse("data:image/png;base64,iVBORw0KGgo=")) == "Data"
+			&& kindOf(nui.ImageSource.parse("data:image/svg+xml;base64,PHN2Zz4=")) == "Invalid"
+			&& kindOf(nui.ImageSource.parse("data:image/png,rawbytes")) == "Invalid");
+		check("http, relative paths and nothing are never loaded", kindOf(nui.ImageSource.parse("http://example.org/a.png")) == "Invalid"
+			&& kindOf(nui.ImageSource.parse("logo.png")) == "Invalid" && kindOf(nui.ImageSource.parse("")) == "Invalid"
+			&& kindOf(nui.ImageSource.parse(null)) == "Invalid");
+		check("a tree built here may name a local file", kindOf(nui.ImageSource.check("file:///Users/a/b.png", false)) == "File");
+		check("a received one may not", kindOf(nui.ImageSource.check("file:///Users/a/b.png", true)) == "Invalid");
+		check("a received https: loads only from a trusted host", kindOf(nui.ImageSource.check("https://cdn.example.org/a.png", true)) == "Invalid"
+			&& kindOf(nui.ImageSource.check("https://cdn.example.org/a.png", true, ["cdn.example.org"])) == "Https"
+			&& kindOf(nui.ImageSource.check("https://cdn.example.org@evil.net/a.png", true, ["cdn.example.org"])) == "Invalid");
+		var big = [for (_ in 0...Std.int(256 * 1024 / 3 + 10)) "AAAA"].join("");
+		check("a received data: source is bounded at 256 KiB", kindOf(nui.ImageSource.check("data:image/png;base64," + big, true)) == "Invalid"
+			&& kindOf(nui.ImageSource.check("data:image/png;base64," + big, false)) == "Data");
+		check("assets and blobs arrive from anywhere they are sent", kindOf(nui.ImageSource.check("asset:logo.png", true)) == "Asset"
+			&& kindOf(nui.ImageSource.check('blob:sha256=$hex', true)) == "Blob");
+
+		// --- Icon names ---
+		check("57 icon names, each lower-case words joined by dashes", nui.Icons.NAMES.length == 57
+			&& Lambda.foreach(nui.Icons.NAMES, n -> ~/^[a-z]+(-[a-z]+)*$/.match(n)));
+		check("no name twice", Lambda.count([for (n in nui.Icons.NAMES) n => true]) == nui.Icons.NAMES.length);
+		check("a name is known, a cut is not", nui.Icons.knows("mic-off") && !nui.Icons.knows("cut") && !nui.Icons.knows(null));
+		check("an unlabelled icon still says something", nui.Icons.spoken("speaker-off") == "speaker off");
+
 		// A sink replaces its tree on every generation; the renderer must see
 		// the new one after `rebuild` without being handed a new source.
 		received = new Node("VStack").child(new Node("Text").prop("text", PString("second")));

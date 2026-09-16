@@ -51,3 +51,45 @@ This is not stylistic. A Haxe closure held only by native code is invisible to t
 hxcpp GC and will be collected under you. Both `sui` and `qui` hit this and both
 solved it the same way — a registry on the Haxe side, an id across the boundary.
 The model bakes that in so the third backend does not have to rediscover it.
+
+## Nodes whose props carry rules
+
+Most canonical nodes are a name and a few scalar props. Three carry rules every
+backend must apply the same way, so the rules live here rather than in six
+renderers.
+
+### `Picker`
+
+`label` (optional), `selectedIndex` (`Int`, `-1` for none), `onSelect` (an index),
+and **one `Text` child per option**. `onSelect` is an action like `onClick`;
+after a wire it arrives as a string callback and the index is its text. A
+renderer applies a received `selectedIndex` only when that option exists and the
+list is closed, and never reports a selection it made itself as a choice.
+
+### `Image`
+
+`src` (required), `alt` (required — `""` declares the picture decorative),
+`width` and `height` in points (one given, the other follows the picture's
+ratio), `fit`: `contain` (default), `cover` or `fill`.
+
+`src` has a scheme, parsed and judged by `nui.ImageSource`:
+
+| scheme | names | built here | received |
+|---|---|---|---|
+| `asset:path` | a file shipped in the application, optionally `#sha256=…` | yes | yes |
+| `blob:sha256=…` | a picture made at run time, served by its sender | yes | yes |
+| `https://…` | a picture on the web | yes | only from a trusted host |
+| `data:image/png;base64,…` | a small picture in the tree | yes | up to 256 KiB |
+| `file:///…` | a local path | yes | never |
+
+Anything else is not loaded. Whatever is not loaded, cannot be decoded or is
+still arriving is drawn as the `alt`, never as a broken-image glyph. A received
+`https:` is refused unless the panel trusts the host because a panel that loaded
+any URL a tree named would contact any host its sender chose.
+
+### `Icon`
+
+`name`, from `nui.Icons.NAMES`, and `label` (optional; absent, the name is what a
+screen reader says). Each backend maps the names to its platform's own icons, and
+colours the icon like text. A received name it does not know is drawn as its
+label.
