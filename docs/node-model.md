@@ -142,6 +142,52 @@ a good interface and should not have to be built twice.
 
 A field with neither reports nothing and is read-only in practice.
 
+### `SecretInput`
+
+`placeholder`, `isSet` (`Bool`, optional — whether a value is already stored),
+and `onSecret`, which carries the value **once**, on submission.
+
+**It has no `text`, and that is the definition of the type rather than a rule a
+renderer must remember.** A stream key, a password, a token: the value is typed
+here and leaves through `onSecret`. It never enters the tree, so there is
+nothing to republish on every frame, nothing for a log to print from a node,
+nothing to redraw on a screen being captured, and "a received value is not
+applied" is vacuous — there is no received value.
+
+**Why a type and not `TextInput` with a flag.** A forgotten flag *fails open*: a
+renderer that does not know it draws an ordinary field with the secret in clear,
+and nothing says so. An unknown type *fails closed* — the renderer draws its
+"unknown type" marker, loudly, and nobody reads the key off a screen. For an
+ordinary defect that is a preference; for a secret it is the difference between
+a bug and a leak.
+
+What a renderer owes it:
+
+- **masked** display, and no copy to the clipboard;
+- **nothing reported per keystroke** — one report, on submission;
+- **cleared after submitting**, and on losing focus.
+
+`isSet` exists so a panel can say "saved — type to replace" without the value
+crossing. It tells a remote observer that a key exists; nothing more. A prefix
+of the value — "…ab12", to reassure — is not `isSet` and does not belong in a
+tree.
+
+**On the wire.** `onSecret` is the one action whose argument is never written
+down: the name is the marking, so a projector derives the set of secret action
+ids from it and every trace prints `[secret, N characters]`. Deriving it from
+the name rather than from a flag set at each logging site is the same choice as
+the type itself — nobody can forget what they do not have to do.
+
+**Where it may be shown at all.** A `SecretInput` is not projected onto a
+channel that cannot carry its answer: not loopback, not end-to-end encrypted, no
+field. The far side is told to set it on the machine itself. Refusing at
+submission instead would be too late — the secret has already been typed, in
+front of whatever was watching the screen.
+
+Two limits worth stating rather than hiding: a string cannot be wiped from
+memory once it exists, only dereferenced; and masking protects the value on
+screen, not the moment it is typed in front of a capture.
+
 **A received `text` is not applied to a field somebody is typing in** — the same
 rule a `Picker` has for a list that is open, and for the same reason. The value
 belongs to the sender, but during typing the sender is behind: a renderer that

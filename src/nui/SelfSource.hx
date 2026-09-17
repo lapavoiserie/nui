@@ -56,7 +56,21 @@ class SelfSource implements NodeSource<Node> {
 	/** The prop names an action can hide under, in the canonical vocabulary.
 		Kept here rather than guessed per call: a renderer asks `actionId`
 		without knowing whether it is holding a button or a switch. **/
-	static final ACTION_KEYS = ["onClick", "click", "onToggle", "onText", "onValue", "onSelect", "onSubmit"];
+	static final ACTION_KEYS = ["onClick", "click", "onToggle", "onText", "onValue", "onSelect",
+		"onSubmit", SECRET_KEY];
+
+	/**
+		The one action whose argument must never be written down.
+
+		A `SecretInput` reports through this and through nothing else, and that
+		name is the whole marking: a projector derives the set of secret action
+		ids from it, so every trace, relay and loss log prints
+		`[secret, N characters]` without anyone having to remember a flag. A
+		flag at each logging site is the shape that fails by being forgotten --
+		which is the same reason a secret is a type of its own rather than a
+		boolean on `TextInput`.
+	**/
+	public static inline var SECRET_KEY = "onSecret";
 
 	public function new(content:() -> Node) {
 		this.content = content;
@@ -170,6 +184,14 @@ class SelfSource implements NodeSource<Node> {
 		// One gesture, one render -- the rule `NodeSource.invokeAction` states.
 		rui.Signal.Scheduler.batch(() -> {
 			for (key in ACTION_KEYS) {
+				// A secret is never invoked from the node. Every other action
+				// here takes its value from a prop -- `isOn`, `value`,
+				// `selectedIndex` -- and a `SecretInput` has none by design, so
+				// this loop would report an empty secret as though somebody had
+				// entered one. It is reported by the renderer holding it, with
+				// the value, and nowhere else.
+				if (key == SECRET_KEY)
+					continue;
 				var v = PropValueTools.resolve(n.props.get(key));
 				if (v == null)
 					continue;
