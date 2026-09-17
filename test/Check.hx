@@ -479,6 +479,43 @@ class Check {
 		src.rebuild();
 		check("after rebuild the new one is", src.stringProp(src.childAt(src.root(), 0), "text") == "second");
 
+		// --- a secret's id is derivable, so no log has to be told ---
+		//
+		// The whole point: a trace prints "[secret, N characters]" because it
+		// can work out which ids those are from the snapshot it already has,
+		// not because somebody remembered to pass a flag.
+		var table = new nui.Snapshot.ActionTable();
+		var panel = new Node("VStack")
+			.child(new Node("Button")
+				.prop("label", PString("TAKE"))
+				.prop("onClick", PCallback(() -> {})))
+			.child(new Node("SecretInput")
+				.prop("placeholder", PString("Key"))
+				.prop(nui.SelfSource.SECRET_KEY, PCallbackString(_ -> {})));
+		var snap = nui.Snapshot.project(panel, table);
+
+		var secrets = nui.Snapshot.secretIds(snap);
+		check("one action of this tree is a secret", secrets.length == 1,
+			Std.string(secrets.length));
+		var clicked = snap.children[0].actions.get("onClick");
+		check("and it is not the button's", secrets[0] != clicked,
+			secrets[0] + " vs " + clicked);
+		check("it is the secret field's",
+			secrets[0] == snap.children[1].actions.get(nui.SelfSource.SECRET_KEY));
+
+		check("a tree with no secret has none", nui.Snapshot.secretIds(
+			nui.Snapshot.project(new Node("Text").prop("text", PString("x")),
+				new nui.Snapshot.ActionTable())).length == 0);
+		check("and neither has nothing at all", nui.Snapshot.secretIds(null).length == 0);
+
+		check("what a log prints instead says how long it was",
+			nui.Snapshot.redacted("abc123") == "[secret, 6 characters]",
+			nui.Snapshot.redacted("abc123"));
+		check("and tells an empty one apart from a missing one",
+			nui.Snapshot.redacted("") == "[secret, 0 characters]");
+		check("the value itself is never in it",
+			nui.Snapshot.redacted("hunter2").indexOf("hunter2") < 0);
+
 		Sys.println(fails == 0 ? '\nall $checks checks passed' : '\n$fails failed');
 		#if sys
 		Sys.exit(fails == 0 ? 0 : 1);

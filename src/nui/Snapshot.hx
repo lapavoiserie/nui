@@ -56,6 +56,50 @@ class Snapshot {
 		`table`. Children thunks are resolved — a snapshot samples the whole
 		picture, the same reason sui's `classify` forces the lazy parts.
 	**/
+	/**
+		The action ids in a snapshot whose argument must never be written down.
+
+		Derived from the snapshot, which both ends have: the one that projected
+		it and the one that received it. **Derived, and not a flag somebody
+		sets** — the marking is the canon's own key name (`SECRET_KEY`), so a
+		trace, a relay or a loss log cannot print a secret by forgetting to
+		check a boolean it was never given. A flag at each logging site is the
+		shape that fails open, which is the same reason `SecretInput` is a type
+		and not an option on a text field.
+
+		Cheap enough to call per frame: one walk of a tree that was just built.
+	**/
+	public static function secretIds(snap:Null<SnapshotNode>):Array<Int> {
+		var found:Array<Int> = [];
+		gatherSecrets(snap, found);
+		return found;
+	}
+
+	static function gatherSecrets(snap:Null<SnapshotNode>, into:Array<Int>):Void {
+		if (snap == null)
+			return;
+		if (snap.actions != null) {
+			var id = snap.actions.get(SelfSource.SECRET_KEY);
+			if (id != null)
+				into.push(id);
+		}
+		if (snap.children != null)
+			for (child in snap.children)
+				gatherSecrets(child, into);
+	}
+
+	/**
+		What a log prints in place of a secret.
+
+		The length, because a diagnostic that says nothing at all cannot tell
+		"the key arrived empty" from "the key arrived": both are worth knowing
+		when a stream will not start, and neither needs the value.
+	**/
+	public static function redacted(arg:Null<String>):String {
+		var n = arg == null ? 0 : arg.length;
+		return "[secret, " + n + " characters]";
+	}
+
 	public static function project(node:Node, table:ActionTable):SnapshotNode {
 		table.beginGeneration();
 		var out = projectAt(node, table, "");
