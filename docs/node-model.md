@@ -145,7 +145,16 @@ A field with neither reports nothing and is read-only in practice.
 ### `SecretInput`
 
 `placeholder`, `isSet` (`Bool`, optional — whether a value is already stored),
-and `onSecret`, which carries the value **once**, on submission.
+`onSecret`, which carries the value **once**, on submission, and `whenRefused`
+(optional — see below).
+
+`whenRefused` is what a panel is shown where this field may not be offered at
+all: **the application's own words**, in its own language. The refusal happens
+far from the application, in whatever is projecting the tree, and that has no
+idea what language the application speaks. A library that writes the user's
+prose is the wrong division of labour — it decides the refusal, the application
+says it. Without one, the projector writes a sentence of its own rather than
+nothing: a refusal nobody can read is worse than one in the wrong language.
 
 **It has no `text`, and that is the definition of the type rather than a rule a
 renderer must remember.** A stream key, a password, a token: the value is typed
