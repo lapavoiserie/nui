@@ -205,19 +205,19 @@ class Declarations {
 		for (decl in declarations(cls, path, ":prop")) {
 			var field = decl.field;
 			// `@:prop` with nothing said takes the field's own name.
-			var name = decl.args.length == 0 ? field.name : decl.args[0];
+			var name = decl.args.length == 0 ? decl.name : decl.args[0];
 			var callback = decl.args.length > 1 ? decl.args[1] : null;
 
-			var arg = byName.get(field.name);
+			var arg = byName.get(decl.name);
 			if (arg != null) {
-				covered.set(field.name, true);
-				if (!Context.unify(field.type, arg.t)) {
-					Context.error('$path: "${field.name}" is the constructor argument of '
+				covered.set(decl.name, true);
+				if (field != null && !Context.unify(field.type, arg.t)) {
+					Context.error('$path: "${decl.name}" is the constructor argument of '
 						+ "that name, of type " + haxe.macro.TypeTools.toString(arg.t)
-						+ ", and the field is " + haxe.macro.TypeTools.toString(field.type)
+						+ ", and the field is " + haxe.macro.TypeTools.toString(typeOfDecl(decl))
 						+ ".", decl.pos);
 				}
-			} else if (!writable(field) && d.cells != null) {
+			} else if (field != null && !writable(field) && d.cells != null) {
 				// Only a backend that BUILDS from nodes needs this. The refusal
 				// is about there being nowhere to put a received value, and a
 				// backend whose renderer is in another language -- `aui`'s is
@@ -231,13 +231,13 @@ class Declarations {
 			}
 
 			out.push({
-				field: field.name,
+				field: field == null ? null : field.name,
 				name: name,
 				callback: callback,
-				kind: kindOf(field.type, callback != null, decl.pos),
+				kind: kindOf(typeOfDecl(decl), callback != null, decl.pos),
 				argument: arg == null ? null : arg.name,
 				optional: arg == null ? true : arg.opt,
-				nullable: nullable(field.type),
+				nullable: nullable(typeOfDecl(decl)),
 			});
 		}
 
@@ -252,10 +252,10 @@ class Declarations {
 					+ "so its type cannot say the last one.", decl.pos);
 				continue;
 			}
-			covered.set(decl.field.name, true);
+			covered.set(decl.name, true);
 			out.push({
-				field: decl.field.name, name: decl.args[0], callback: decl.args[1],
-				kind: decl.args[2], argument: decl.field.name, optional: false,
+				field: decl.name, name: decl.args[0], callback: decl.args[1],
+				kind: decl.args[2], argument: decl.name, optional: false,
 				nullable: true, named: true,
 			});
 		}
@@ -285,9 +285,9 @@ class Declarations {
 		}
 
 		for (decl in declarations(cls, path, ":children"))
-			covered.set(decl.field.name, true);
+			covered.set(decl.name, true);
 		for (decl in declarations(cls, path, ":action"))
-			covered.set(decl.field.name, true);
+			covered.set(decl.name, true);
 		var slot = contentOf(d, cls, path);
 		if (slot != null) covered.set(slot, true);
 
@@ -356,8 +356,8 @@ class Declarations {
 					+ "field name to fall back on -- a Haxe field called `action` "
 					+ "is not an action key.", decl.pos);
 			}
-			out.push({field: decl.field.name, name: decl.args[0],
-				carries: carriedBy(decl.field.type, decl.pos)});
+			out.push({field: decl.name, name: decl.args[0],
+				carries: carriedBy(typeOfDecl(decl), decl.pos)});
 		}
 		return out;
 	}
@@ -388,7 +388,7 @@ class Declarations {
 				Context.error('$path: two fields claim to be the children. A node '
 					+ "has one list of them.", decl.pos);
 			}
-			found = {field: decl.field.name, type: decl.args[0], prop: decl.args[1]};
+			found = {field: decl.name, type: decl.args[0], prop: decl.args[1]};
 		}
 		return found;
 	}
@@ -470,17 +470,28 @@ class Declarations {
 			}
 			var borrowed = stringOf(meta.params[0]);
 			var field = borrowed == null ? null : fieldNamed(cls, borrowed);
-			if (field == null) {
-				Context.error('$path: `@$of("$borrowed")` names no field of this class '
-					+ "or of anything it extends.", meta.pos);
+			// Or a constructor ARGUMENT of that name. `qui`'s controls keep no
+			// field for a prop: they write straight into the props map a push
+			// renderer reads, so the argument is the only typed thing there is
+			// -- and it is enough to say the name and the kind.
+			var arg = field != null || borrowed == null ? null : argumentNamed(cls, borrowed);
+			if (field == null && arg == null) {
+				Context.error('$path: `@$of("$borrowed")` names no field of this class, '
+					+ "of anything it extends, or of its constructor.", meta.pos);
 			}
-			out.push({field: field, args: words(meta.params.slice(1)), pos: meta.pos});
+			out.push({
+				field: field, argument: arg, name: borrowed,
+				args: words(meta.params.slice(1)), pos: meta.pos,
+			});
 		}
 
 		for (field in cls.fields.get()) {
 			var meta = field.meta.extract(of);
 			if (meta.length == 0) continue;
-			out.push({field: field, args: words(meta[0].params), pos: field.pos});
+			out.push({
+				field: field, argument: null, name: field.name,
+				args: words(meta[0].params), pos: field.pos,
+			});
 		}
 		return out;
 	}
@@ -526,6 +537,17 @@ class Declarations {
 		for (p in params) if (p.name == slot)
 			return !Context.unify(Context.resolveType(arrayOfViews(d), Context.currentPos()), p.t);
 		return false;
+	}
+
+	/** The type a declaration is about: its field's, or its argument's. **/
+	static function typeOfDecl(decl:Decl):Type
+		return decl.field != null ? decl.field.type : decl.argument.t;
+
+	/** A constructor argument of this class, by name. **/
+	static function argumentNamed(cls:ClassType, name:String):Null<{name:String, opt:Bool, t:Type}> {
+		var params = constructorParams(cls);
+		if (params != null) for (p in params) if (p.name == name) return p;
+		return null;
 	}
 
 	/** A field of this class or of anything it extends. **/
@@ -733,6 +755,12 @@ class Declarations {
 		module gives everywhere else.
 	**/
 	static function boundType(t:Type):Null<Type> {
+		// Through an abstract as well: `qui.ui.ToggleBinding` is one over
+		// `qui.state.Binding<Bool>`, and the cell is what it stands for.
+		var t = switch (t.follow()) {
+			case TAbstract(_, _): Context.followWithAbstracts(t);
+			case _: t;
+		};
 		var cls = switch (t.follow()) {
 			case TInst(ref, _): ref.get();
 			case _: null;
@@ -941,7 +969,15 @@ typedef Children = {
 #if macro
 /** One `@:prop`, `@:action` or `@:children`, and the field it is about. **/
 private typedef Decl = {
-	var field:ClassField;
+	/** The field it is about, or null when only a constructor argument is. **/
+	var field:Null<ClassField>;
+
+	/** That argument, when there is no field. **/
+	var argument:Null<{name:String, opt:Bool, t:Type}>;
+
+	/** The Haxe name of either. **/
+	var name:String;
+
 	var args:Array<String>;
 	var pos:haxe.macro.Expr.Position;
 }
