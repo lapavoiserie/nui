@@ -257,6 +257,24 @@ class Derive {
 			var field = prop.field;
 			var name = prop.name;
 
+			// A value the control knows only by name: read through the
+			// backend's registry, and written back the same way.
+			if (prop.named == true) {
+				var registry = d.named.split(".");
+				var read = registry.concat(["read"]);
+				var write = registry.concat(["write"]);
+				var value = wrap(prop.kind, convert(prop.kind, macro __got));
+				body.push(macro {
+					var __got = $p{read}(__it.$field);
+					if (__got != null) {
+						__node.prop($v{name}, $value);
+						__node.prop($v{prop.callback},
+							${namedBack(prop.kind, write, field)});
+					}
+				});
+				continue;
+			}
+
 			// A prop with no field lives in the backend's bag, read by name.
 			if (field == null) {
 				var bag = d.bag;
@@ -324,6 +342,17 @@ class Derive {
 			case "Int": macro nui.PropValue.PInt($value);
 			case "Float": macro nui.PropValue.PFloat($value);
 			case _: macro nui.PropValue.PString($value);
+		}
+	}
+
+	/** A write coming back to a cell the control knows only by name. **/
+	static function namedBack(kind:String, write:Array<String>, field:String):Expr {
+		var send = macro $p{write}(__it.$field, Std.string(__v));
+		return switch (kind) {
+			case "Bool": macro nui.PropValue.PCallbackBool(__v -> $send);
+			case "Int": macro nui.PropValue.PCallbackInt(__v -> $send);
+			case "Float": macro nui.PropValue.PCallbackFloat(__v -> $send);
+			case _: macro nui.PropValue.PCallbackString(__v -> $send);
 		}
 	}
 

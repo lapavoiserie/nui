@@ -241,6 +241,25 @@ class Declarations {
 			});
 		}
 
+		// Values the control knows only by name -- `sui`'s, which live on the
+		// Swift side. The field holds a name, so its type says `String` and
+		// nothing about what the cell carries; the third word does.
+		if (d.named != null) for (decl in declarations(cls, path, ":cell")) {
+			if (decl.args.length < 3) {
+				Context.error('$path: `@:cell` takes the name it crosses under, the '
+					+ 'callback its writes come back through, and what it carries -- '
+					+ '`@:cell("isOn", "onToggle", "Bool")`. The field holds a NAME, '
+					+ "so its type cannot say the last one.", decl.pos);
+				continue;
+			}
+			covered.set(decl.field.name, true);
+			out.push({
+				field: decl.field.name, name: decl.args[0], callback: decl.args[1],
+				kind: decl.args[2], argument: decl.field.name, optional: false,
+				nullable: true, named: true,
+			});
+		}
+
 		// Props that live in the bag rather than in a field. Declared on the
 		// class, with their kind, because a `Map<String, Dynamic>` cannot say.
 		if (d.bag != null) for (meta in cls.meta.extract(":bag")) {
@@ -274,7 +293,13 @@ class Declarations {
 
 		// A required argument nobody declared: the control cannot be built from
 		// a node at all, and a rank rule said nothing about it.
-		if (params != null) for (p in params)
+		//
+		// Only where something BUILDS. A describe-only backend never makes a
+		// control out of a node -- `sui` draws with SwiftUI -- so an argument
+		// no property covers is not a gap there, and `sui.ui.Text`'s argument
+		// is `text` while its field is `content`, which is nobody's problem
+		// until something has to call the constructor.
+		if (params != null && d.cells != null) for (p in params)
 			if (!p.opt && !covered.exists(p.name))
 				Context.error('$path: the constructor needs "${p.name}", and no property '
 					+ "declares it. Add `@:prop` to the field of that name.", cls.pos);
@@ -843,6 +868,22 @@ typedef Dialect = {
 		the value, and the declaration answers only when nothing typed does.**
 	**/
 	@:optional var bag:String;
+
+	/**
+		Where the backend reads and writes a cell it knows only by NAME.
+
+		`sui` has one. Its state lives on the Swift side and is addressed
+		through a registry, so a control holds the cell's name -- a `String` --
+		and not the cell. The type therefore cannot say what the value is, and
+		`@:cell("isOn", "onToggle", "Bool")` says it.
+
+		That is the same line every other form here draws: the type answers when
+		the field holds the value, and the declaration answers only when nothing
+		typed does. A name is not a value.
+
+		Two static functions: `read(name):Dynamic` and `write(name, raw:String)`.
+	**/
+	@:optional var named:String;
 }
 
 /** One declared property of one control. **/
@@ -868,6 +909,9 @@ typedef Prop = {
 
 	/** Whether the field can hold null, and so whether describing must ask. **/
 	var nullable:Bool;
+
+	/** Whether the field holds the cell's NAME rather than the cell. **/
+	@:optional var named:Bool;
 }
 
 /** One act a control offers. **/
