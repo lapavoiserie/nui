@@ -66,6 +66,23 @@ default — or `caption`), `family` (a font the receiving application ships),
 width, so a timecode does not jitter as it counts). `nui.TextStyle` says what
 each means and what an unknown value falls back to.
 
+Two of these have a Haxe form that is not the wire form: an application writes
+`true` for tabular digits and picks a scale from four named constants, while
+the wire carries `"tabular"` and a lowercase word. `nui.Numbers` and
+`nui.Scale` are those two values as types, and the conversion is the cast:
+
+```haxe
+var numbers:nui.Numbers = true;          // an application writes a Bool
+node.prop("numbers", PString(numbers));  // the wire gets "tabular"
+if (numbers) …                           // painting code reads a Bool again
+```
+
+Nothing new is decided here — `TextStyle.scaleOf` and `TextStyle.isTabular`
+have always been the rule. What changes is that a backend no longer calls them
+by hand at each boundary, which is where a describer and a renderer come to
+disagree about one value. A field typed `nui.Scale` cannot be described as
+anything but a scale.
+
 **Props, not modifiers.** The modifier chain carried a "font" for a while, and
 that is exactly where the six backends drifted apart: one sent a step of its own
 vocabulary in `strings`, another read a pixel size from `floats`, a third

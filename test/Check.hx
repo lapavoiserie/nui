@@ -442,6 +442,20 @@ class Check {
 		check("numbers of one width are asked for by name", nui.TextStyle.isTabular("tabular")
 			&& nui.TextStyle.isTabular("Tabular") && !nui.TextStyle.isTabular("proportional") && !nui.TextStyle.isTabular(null));
 
+		// The two conversions above, carried by a type instead of by whoever
+		// remembers to call them. Every backend wrote them itself on the way
+		// in and on the way out, which is how a describer and a renderer end
+		// up disagreeing about one value.
+		var wire:nui.Scale = "largeTitle";
+		check("a scale arriving from elsewhere is one of the four", (wire : String) == "body"
+			&& (nui.Scale.Title : String) == "title" && (("Caption" : nui.Scale) : String) == "caption");
+		var asked:nui.Numbers = true;
+		var absent:nui.Numbers = false;
+		check("digits of one width cross as a word, and their absence as nothing",
+			(asked : Null<String>) == nui.TextStyle.TABULAR && (absent : Null<String>) == null);
+		check("and read back as the Bool an application wrote", (asked : Bool) && !(absent : Bool)
+			&& ((("Tabular" : nui.Numbers)) : Bool));
+
 		// --- Icon shapes ---
 		var shapeless = [for (n in nui.Icons.NAMES) if (nui.IconShapes.of(n) == null) n];
 		check("every icon name has a shape", shapeless.length == 0, shapeless);
