@@ -118,9 +118,8 @@ class Derive {
 			if (prop.callback == null) continue;
 			var cell = "__cell_" + prop.field;
 			var seed = readProp(prop, defaults.get(prop.argument), false);
-			body.push(macro var $cell = ${cellOf(d, seed)});
-			var read = macro $i{cell};
-			body.push(readersCall(d, "report", [read, macro p.get($v{prop.callback})]));
+			var tell = readAction(d, {field: prop.field, name: prop.callback, carries: prop.kind});
+			body.push(macro var $cell = ${cellOf(d, prop.kind, seed, tell)});
 		}
 
 		// The constructor, argument by argument, in its own order.
@@ -329,9 +328,24 @@ class Derive {
 	static function fn2(a:ComplexType, b:ComplexType, to:ComplexType):ComplexType
 		return TFunction([a, b], to);
 
-	/** `new <the dialect's state>(seed)`. **/
-	static function cellOf(d:Declarations.Dialect, seed:Expr):Expr {
-		return {expr: ENew(typePath(d.state), [seed]), pos: Context.currentPos()};
+	/**
+		The cell a two-way control is given, made by the backend.
+
+		`<cells>.boolCell(value, tell)` and its three siblings. The generator
+		cannot make this itself: `pui` wants a `pui.state.State` whose sink
+		reports, `cui` wants a get/set binding closed over the value. What both
+		have in common is only the question -- here is what arrived and here is
+		where writes go -- so that is what crosses.
+	**/
+	static function cellOf(d:Declarations.Dialect, kind:String, seed:Expr, tell:Expr):Expr {
+		var parts = d.cells.split(".");
+		parts.push(switch (kind) {
+			case "Bool": "boolCell";
+			case "Int": "intCell";
+			case "Float": "floatCell";
+			case _: "stringCell";
+		});
+		return {expr: ECall(macro $p{parts}, [seed, tell]), pos: Context.currentPos()};
 	}
 
 	/**

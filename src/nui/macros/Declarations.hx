@@ -588,7 +588,7 @@ class Declarations {
 		parameter's and not the state's.
 	**/
 	static function kindOf(t:Type, bound:Bool, at:haxe.macro.Expr.Position):String {
-		var read = bound ? stateParam(t) : t;
+		var read = bound ? boundType(t) : t;
 		if (read == null) return "String";
 		return switch (read.follow()) {
 			case TInst(ref, _) if (ref.get().name == "String"): "String";
@@ -636,9 +636,35 @@ class Declarations {
 		return "String";
 	}
 
-	static function stateParam(t:Type):Null<Type> {
-		return switch (t.follow()) {
-			case TInst(ref, params) if (params.length == 1 && ref.get().name == "State"): params[0];
+	/**
+		What a two-way value carries, read from the cell it lives in.
+
+		Any type with `get():T` and `set(T):Void` is a cell: `pui.state.State`
+		is one, and so is every one of `cui`'s bindings, which are get/set pairs
+		and not `rui` cells at all. Matching on the NAME `State` would have said
+		`cui` has no two-way values -- and matching on `rui.state.State` would
+		have said the same, which is worse because it would have looked
+		principled.
+
+		The shape is the definition. That is the same answer the rest of this
+		module gives everywhere else.
+	**/
+	static function boundType(t:Type):Null<Type> {
+		var cls = switch (t.follow()) {
+			case TInst(ref, _): ref.get();
+			case _: null;
+		};
+		// A `State<T>` says it directly; anything else is asked for its `get`.
+		var params = switch (t.follow()) {
+			case TInst(ref, p) if (p.length == 1 && ref.get().name == "State"): p;
+			case _: null;
+		};
+		if (params != null) return params[0];
+
+		var getter = cls == null ? null : fieldNamed(cls, "get");
+		if (getter == null) return null;
+		return switch (Context.follow(getter.type)) {
+			case TFun(args, ret) if (args.length == 0): ret;
 			case _: null;
 		};
 	}
@@ -717,6 +743,19 @@ typedef Dialect = {
 		`pui.nui.Describe.appendChildren`.
 	**/
 	@:optional var appendChildren:String;
+
+	/**
+		Where the backend makes a cell out of a received value and a callback.
+
+		Four static functions -- `boolCell`, `intCell`, `floatCell`,
+		`stringCell` -- each taking the value the node carried and what to call
+		when the control writes. This is the one step a declaration cannot
+		describe, because the cell a control takes is the backend's own idea:
+		`pui` makes a `pui.state.State` and points its sink at the callback,
+		`cui` makes a get/set binding over the captured value. Four functions
+		per backend, and the generator calls them by kind.
+	**/
+	@:optional var cells:String;
 }
 
 /** One declared property of one control. **/
