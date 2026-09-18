@@ -142,6 +142,35 @@ a good interface and should not have to be built twice.
 
 A field with neither reports nothing and is read-only in practice.
 
+### `PasswordInput`
+
+`text`, `placeholder` (optional), `onText`, `onSubmit` (optional) — a
+`TextInput` in every respect but one: **it is drawn masked**, one mark per code
+point, and never shows what it holds.
+
+The value is in the tree. That is the whole difference from `SecretInput`
+below, and it is a difference of purpose rather than of degree:
+
+| | `PasswordInput` | `SecretInput` |
+|---|---|---|
+| the value | in the tree, bound, read back | never in the tree |
+| who owns it | the application | the person typing, until they submit |
+| what it is for | a password field an application manages | a key, a token, entered once |
+
+An application that wants to pre-fill a field, read it back, validate it as it
+is typed or keep it in its own state wants this one. An application that must
+never hold the value wants the other.
+
+**Why a type and not `masked: true` on `TextInput`.** The same reason
+`SecretInput` is a type: a renderer that does not know the flag draws the
+password in clear, and nothing says so. An unknown type draws its marker
+instead. A flag fails open; a type fails closed. It costs nothing in an
+implementation — on a renderer that draws its own text it is one method
+overridden — because what differs is how it is shown and not what it does.
+
+Everything `TextInput` says still holds, including that a received `text` is
+not applied to a field somebody is typing in.
+
 ### `SecretInput`
 
 `placeholder`, `isSet` (`Bool`, optional — whether a value is already stored),
