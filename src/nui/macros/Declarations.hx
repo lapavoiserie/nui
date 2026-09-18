@@ -217,7 +217,13 @@ class Declarations {
 						+ ", and the field is " + haxe.macro.TypeTools.toString(field.type)
 						+ ".", decl.pos);
 				}
-			} else if (!writable(field)) {
+			} else if (!writable(field) && d.cells != null) {
+				// Only a backend that BUILDS from nodes needs this. The refusal
+				// is about there being nowhere to put a received value, and a
+				// backend whose renderer is in another language -- `aui`'s is
+				// Kotlin -- never puts one anywhere: it only describes. A
+				// read-only property is then exactly right, and `aui.ui.Text`'s
+				// is, its text being a template interpolated from named cells.
 				Context.error('$path: "${field.name}" is neither a constructor argument '
 					+ "nor assignable, so nothing could ever put a value in it.\n"
 					+ "  Either name a constructor argument after it, or make the field "
@@ -233,6 +239,30 @@ class Declarations {
 				optional: arg == null ? true : arg.opt,
 				nullable: nullable(field.type),
 			});
+		}
+
+		// Props that live in the bag rather than in a field. Declared on the
+		// class, with their kind, because a `Map<String, Dynamic>` cannot say.
+		if (d.bag != null) for (meta in cls.meta.extract(":bag")) {
+			for (param in meta.params) {
+				var said = stringOf(param);
+				var parts = said == null ? [] : said.split(":");
+				if (parts.length != 2) {
+					Context.error('$path: `@:bag` takes "name:Kind" -- '
+						+ '`@:bag("src:String", "width:Float")`. A prop kept in '
+						+ d.bag + " has no type to read, so its kind is said here.",
+						meta.pos);
+					continue;
+				}
+				// A bag prop covers the constructor argument of its name: that
+				// is how it got into the bag -- `aui.ui.Image`'s `src` is an
+				// argument that the constructor writes into `properties`.
+				covered.set(parts[0], true);
+				out.push({
+					field: null, name: parts[0], callback: null, kind: parts[1],
+					argument: null, optional: true, nullable: true,
+				});
+			}
 		}
 
 		for (decl in declarations(cls, path, ":children"))
@@ -797,12 +827,28 @@ typedef Dialect = {
 		per backend, and the generator calls them by kind.
 	**/
 	@:optional var cells:String;
+
+	/**
+		The field a control keeps its props in, when they are not fields.
+
+		`aui` has one: every control writes into a `Map<String, Dynamic>` that
+		the Kotlin renderer reads by name, so most of its controls have no typed
+		field for a prop at all. That is not a failure to declare things
+		properly — it is what a renderer in another language needs, and it is
+		why `aui`'s describer reads `v.properties.get("src")`.
+
+		Where a prop lives in the bag, the type cannot say what it carries, so
+		`@:bag("src:String", "width:Float")` says it. The rule stays the one
+		everything else here follows: **the type answers when the field holds
+		the value, and the declaration answers only when nothing typed does.**
+	**/
+	@:optional var bag:String;
 }
 
 /** One declared property of one control. **/
 typedef Prop = {
-	/** The Haxe field it is read from. **/
-	var field:String;
+	/** The Haxe field it is read from, or null when it lives in the bag. **/
+	var field:Null<String>;
 
 	/** The canonical name it travels under. **/
 	var name:String;

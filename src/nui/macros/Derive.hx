@@ -75,7 +75,12 @@ class Derive {
 
 		for (type in types) {
 			var path = Declarations.classOf(d, type);
-			builders.push(macro $v{type} => ${builderFor(d, type, path)});
+			// A backend whose renderer is in another language has no builder to
+			// generate: `aui` draws with Compose and `sui` with SwiftUI, and
+			// neither ever makes a control out of a node here. Saying so is the
+			// absence of `cells`, which is also what says there is no cell to
+			// make.
+			if (d.cells != null) builders.push(macro $v{type} => ${builderFor(d, type, path)});
 			describers.push(macro $v{path} => ${describerFor(d, type, path)});
 		}
 
@@ -252,6 +257,16 @@ class Derive {
 			var field = prop.field;
 			var name = prop.name;
 
+			// A prop with no field lives in the backend's bag, read by name.
+			if (field == null) {
+				var bag = d.bag;
+				var got = macro __it.$bag.get($v{name});
+				var value = wrap(prop.kind, convert(prop.kind, got));
+				body.push(macro if (__it.$bag.exists($v{name}))
+					__node.prop($v{name}, $value));
+				continue;
+			}
+
 			if (prop.callback != null) {
 				var value = wrap(prop.kind, macro __it.$field.get());
 				body.push(macro __node.prop($v{name}, $value));
@@ -290,6 +305,16 @@ class Derive {
 		var block = {expr: EBlock(body), pos: Context.currentPos()};
 		var viewType = pathOf(d.view);
 		return macro @:privateAccess function(view:$viewType):nui.Node $block;
+	}
+
+	/** A `Dynamic` out of the bag, as the kind it was declared to be. **/
+	static function convert(kind:String, got:Expr):Expr {
+		return switch (kind) {
+			case "Bool": macro($got : Bool);
+			case "Int": macro Std.int($got);
+			case "Float": macro($got : Float);
+			case _: macro Std.string($got);
+		}
 	}
 
 	/** A value in the `PropValue` its declared kind names. **/
