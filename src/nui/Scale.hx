@@ -14,6 +14,14 @@ package nui;
 	six backends already stored a normalised `String`, which is this abstract
 	without the name.
 
+	## An `enum abstract`, so `Title` is still written `Title`
+
+	Four named values that a `switch` can be exhaustive over, and that resolve
+	unqualified where a `Scale` is expected -- which is what an `enum` gave and
+	what replacing it must not take away. The difference is underneath: the
+	value IS the word the wire carries, so describing it is a cast and not a
+	four-armed conversion.
+
 	## Anything unknown is `body`
 
 	`@:from` normalises rather than refuses, which is `scaleOf`'s rule and the
@@ -23,24 +31,22 @@ package nui;
 	there the four constants below are the whole vocabulary, and a typo is a
 	compile error because no other name exists to write.
 **/
-abstract Scale(String) to String {
-	inline function new(said:String) this = said;
-
+enum abstract Scale(String) to String {
 	/** A page's title. **/
-	public static final Title = new Scale("title");
+	var Title = "title";
 
 	/** A heading inside it. **/
-	public static final Subtitle = new Scale("subtitle");
+	var Subtitle = "subtitle";
 
 	/** Running text, and what anything unrecognised becomes. **/
-	public static final Body = new Scale("body");
+	var Body = "body";
 
 	/** Something set smaller. **/
-	public static final Caption = new Scale("caption");
+	var Caption = "caption";
 
 	/** What a node said, normalised to one of the four. **/
 	@:from public static inline function said(v:Null<String>):Scale
-		return new Scale(TextStyle.scaleOf(v));
+		return cast TextStyle.scaleOf(v);
 
 	public inline function toString():String
 		return this;
