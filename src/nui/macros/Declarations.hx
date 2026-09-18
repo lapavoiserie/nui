@@ -366,10 +366,15 @@ class Declarations {
 			Context.error('$path: `@:content("$named")` names no constructor argument.',
 				meta[0].pos);
 		}
-		var views = Context.resolveType(arrayOfViews(d), Context.currentPos());
-		if (!Context.unify(views, found.t)) {
+		// A container takes its children as a list, or as the ONE child it has
+		// room for -- `cui.ui.Box` and `cui.ui.ScrollView` wrap a single view,
+		// and saying so is not a special case but the other legal shape.
+		var many = Context.resolveType(arrayOfViews(d), Context.currentPos());
+		var one = Context.resolveType(TPath(viewPath(d)), Context.currentPos());
+		if (!Context.unify(many, found.t) && !Context.unify(one, found.t)) {
 			Context.error('$path: "$named" is ' + haxe.macro.TypeTools.toString(found.t)
-				+ ", and children arrive as Array<" + d.view + ">.", meta[0].pos);
+				+ ", and children arrive as " + d.view + " or Array<" + d.view + ">.",
+				meta[0].pos);
 		}
 		return named;
 	}
@@ -434,15 +439,38 @@ class Declarations {
 		return out;
 	}
 
-	/** `Array<<the dialect's view>>`, which is how children arrive. **/
-	static function arrayOfViews(d:Dialect):haxe.macro.Expr.ComplexType {
+	static function viewPath(d:Dialect):haxe.macro.Expr.TypePath {
 		var parts = d.view.split(".");
-		var view:haxe.macro.Expr.TypePath = {
-			pack: parts.slice(0, parts.length - 1),
-			name: parts[parts.length - 1],
-			params: [],
-		};
-		return TPath({pack: [], name: "Array", params: [TPType(TPath(view))]});
+		return {pack: parts.slice(0, parts.length - 1), name: parts[parts.length - 1], params: []};
+	}
+
+	/** `Array<<the dialect's view>>`, which is how children usually arrive. **/
+	static function arrayOfViews(d:Dialect):haxe.macro.Expr.ComplexType
+		return TPath({pack: [], name: "Array", params: [TPType(TPath(viewPath(d)))]});
+
+	/** Whether this backend's views carry a key a node can be identified by. **/
+	public static function viewsAreKeyed(d:Dialect):Bool {
+		var cls = resolveClass(d.view);
+		return cls != null && fieldNamed(cls, "key") != null;
+	}
+
+	/**
+		Whether this container takes its children one at a time.
+
+		The generated builder hands over `kids` or `kids[0]` accordingly; a
+		single-child container given none gets null, which is what its own
+		optional argument means.
+	**/
+	public static function takesOneChild(d:Dialect, type:String):Bool {
+		var slot = contentFor(d, type);
+		if (slot == null) return false;
+		var path = types(d).get(type);
+		var cls = path == null ? null : resolveClass(path);
+		var params = cls == null ? null : constructorParams(cls);
+		if (params == null) return false;
+		for (p in params) if (p.name == slot)
+			return !Context.unify(Context.resolveType(arrayOfViews(d), Context.currentPos()), p.t);
+		return false;
 	}
 
 	/** A field of this class or of anything it extends. **/
@@ -663,10 +691,23 @@ class Declarations {
 
 		var getter = cls == null ? null : fieldNamed(cls, "get");
 		if (getter == null) return null;
-		return switch (Context.follow(getter.type)) {
-			case TFun(args, ret) if (args.length == 0): ret;
+		var ret = switch (Context.follow(getter.type)) {
+			case TFun(args, out) if (args.length == 0): out;
 			case _: null;
 		};
+		if (ret == null) return null;
+
+		// `cui.state.Binding<T>.get()` answers `T`, the class's own parameter
+		// and not the one this field was declared with. Substituted, or the
+		// kind reads as "cui.state.Binding.T" and is refused -- correctly, and
+		// uselessly.
+		var given = switch (t.follow()) {
+			case TInst(_, p): p;
+			case _: [];
+		};
+		return given.length == 0
+			? ret
+			: haxe.macro.TypeTools.applyTypeParameters(ret, cls.params, given);
 	}
 
 	static function nodeOf(cls:ClassType):Null<String> {

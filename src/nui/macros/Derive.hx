@@ -126,7 +126,9 @@ class Derive {
 		var args:Array<Expr> = [];
 		for (arg in Declarations.argumentsOf(d, type)) {
 			if (content != null && arg.name == content) {
-				args.push(macro kids);
+				args.push(Declarations.takesOneChild(d, type)
+					? macro(kids.length > 0 ? kids[0] : null)
+					: macro kids);
 			} else if (children != null && arg.name == children.field) {
 				args.push(readChildren(children));
 			} else if (byField.exists(arg.name)) {
@@ -238,7 +240,13 @@ class Derive {
 		// second `macro` becomes a variable name.
 		var body:Array<Expr> = [];
 		body.push(macro var __it:$of = cast view);
-		body.push(macro var __node = new nui.Node($v{type}, view.key));
+		// `cui.View` has no key, and says so honestly: nothing in a terminal
+		// carries one, so its `keyOf` has always answered null. Asked of the
+		// view type rather than declared, because a dialect entry for it would
+		// be one more thing to get wrong about a fact the class already states.
+		body.push(Declarations.viewsAreKeyed(d)
+			? macro var __node = new nui.Node($v{type}, view.key)
+			: macro var __node = new nui.Node($v{type}));
 
 		for (prop in props) {
 			var field = prop.field;
