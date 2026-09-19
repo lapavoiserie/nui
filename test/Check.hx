@@ -476,8 +476,18 @@ class Check {
 		check("and come back as the numbers that went in",
 			back != null && back.r == 200 && back.g == 50 && back.b == 60, back);
 
+		check("an opacity is written last, as CSS writes it",
+			(nui.Color.rgba(200, 50, 60, 128) : String) == "#c8323c80");
+		var solid = nui.Color.rgbOf("#c8323c");
+		var faded = nui.Color.rgbOf("#c8323c80");
+		// A colour written without one is solid: nobody writing `#c8323c`
+		// meant invisible.
+		check("and a colour written without one is solid, not invisible",
+			solid != null && solid.a == 255 && faded != null && faded.a == 128, solid);
+
 		check("the short form is each digit doubled",
-			(nui.Color.hex("#f00") : String) == "#ff0000" && (nui.Color.hex("0AF") : String) == "#00aaff");
+			(nui.Color.hex("#f00") : String) == "#ff0000" && (nui.Color.hex("0AF") : String) == "#00aaff"
+			&& (nui.Color.hex("#f008") : String) == "#ff000088");
 		// A colour is written by hand, and a typo in one shows up as a wrong
 		// pixel nobody traces. Refused rather than quietly black.
 		check("and anything else is refused rather than quietly black",
