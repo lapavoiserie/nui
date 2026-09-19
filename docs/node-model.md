@@ -44,7 +44,7 @@ has to close.
 
 **And the names are a closed set** (`nui.Modifiers`): `padding`,
 `backgroundColor`, `foregroundColor`, `border`, `opacity`, `clip`, `width`,
-`height`. That had to be written down, because this page said a modifier is
+`height`, `flex`. That had to be written down, because this page said a modifier is
 ordered and typed and never said what `type` may *be* — so six backends each
 invented their own, and by the time anybody counted they had drifted:
 

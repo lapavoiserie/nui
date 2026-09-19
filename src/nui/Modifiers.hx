@@ -20,7 +20,7 @@ package nui;
 	same thing said twice, in two vocabularies, and a receiver sees whichever it
 	happens to read.
 
-	## The eight
+	## The nine
 
 	Named here so they can be checked, and kept to what a backend can honestly
 	honour:
@@ -34,6 +34,9 @@ package nui;
 	- **`clip`** — nothing: children are cut at this view's edge.
 	- **`width`** / **`height`** — one float each, a size asked for rather than
 	  measured.
+	- **`flex`** — one float: this view's share of what is left over along the
+	  main axis. `pui` has read it since before there was a canon and nothing
+	  named it, so the markup refused to write one.
 
 	## What is deliberately not here
 
@@ -85,10 +88,24 @@ class Modifiers {
 	/** One float: a height asked for rather than measured. **/
 	public static inline var HEIGHT = "height";
 
+	/**
+		One float: this view's share of what is left over along the main axis.
+
+		`pui` has read this since before there was a canon -- its renderer maps
+		it to `View.grow` -- and nothing named it, so `ui()` refused to write
+		one. A panel could not give two thirds of a row to its monitors and one
+		third to its inspector, nor hand a scroll view the rest of a column,
+		without building the modifier by hand beside markup that was checked.
+
+		A backend with no notion of leftover space skips it, like any other
+		modifier it cannot honour.
+	**/
+	public static inline var FLEX = "flex";
+
 	/** Every name, in no particular order — a list is not a chain. **/
 	public static final NAMES:Array<String> = [
 		PADDING, BACKGROUND_COLOR, FOREGROUND_COLOR, BORDER,
-		OPACITY, CLIP, WIDTH, HEIGHT,
+		OPACITY, CLIP, WIDTH, HEIGHT, FLEX,
 	];
 
 	/** Whether this is a modifier at all. **/
@@ -106,7 +123,7 @@ class Modifiers {
 	public static function kindOf(name:Null<String>):Null<String> {
 		return switch (name) {
 			case BACKGROUND_COLOR | FOREGROUND_COLOR | BORDER: "KString";
-			case PADDING | OPACITY | WIDTH | HEIGHT: "KFloat";
+			case PADDING | OPACITY | WIDTH | HEIGHT | FLEX: "KFloat";
 			case CLIP: "KBool";
 			case _: null;
 		}

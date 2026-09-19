@@ -506,8 +506,13 @@ class Check {
 		// -- pui never sent a foregroundColor at all, and aui sent font, bold
 		// and italic as modifiers while the fonts canon had already made them
 		// props of Text.
-		check("eight names, and knowing them is the point", nui.Modifiers.NAMES.length == 8
+		check("nine names, and knowing them is the point", nui.Modifiers.NAMES.length == 9
 			&& nui.Modifiers.knows("backgroundColor") && nui.Modifiers.knows("clip"));
+		// `pui` read this before there was a canon, and nothing named it -- so
+		// the markup refused to write one, and a panel could not give two
+		// thirds of a row to its monitors.
+		check("including the share of what is left over",
+			nui.Modifiers.knows("flex") && nui.Modifiers.kindOf("flex") == "KFloat");
 		check("a misspelling is not one", !nui.Modifiers.knows("backgroundColour")
 			&& !nui.Modifiers.knows(null));
 		// What the fonts canon already owns does not get a second home here.
