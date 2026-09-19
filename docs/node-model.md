@@ -286,6 +286,34 @@ reader says. A backend that draws no icons draws the label. One icon, as a prop
 rather than a child, because a button has one icon and one label, and naming it for
 accessibility is then the renderer's job, not the tree's.
 
+### `Tappable`
+
+`label` and `onClick`, and children of any kind: a container that is **one
+target** for one gesture. A scene's thumbnail with its name under it, and
+tapping anywhere on it puts that scene up.
+
+Not a `Button` with children, and the reason is written into `Button` above: a
+button has one icon and one label, the icon a prop rather than a child, so that
+naming it for accessibility is the renderer's job. A card holds arbitrary
+views, and nothing in them is its name — which is why `label` is here and is not
+optional in spirit. **A screen reader has nothing else to say.** An `Image`'s
+`alt` describes the picture, not what tapping does.
+
+**The children do not take the pointer.** The whole area is the target; that is
+what makes it one card rather than a picture next to a caption. The consequence
+is worth stating rather than discovering: a control inside a `Tappable` cannot
+be operated, so controls do not go inside one. It is the exact inverse of a view
+that lets the pointer through, and both exist because a rectangle's gesture
+belongs to exactly one thing.
+
+Focus and Enter or Space behave as a button's, for the same reason its
+accessible name matters.
+
+Its look is decoration — `border`, `backgroundColor` — and the canon says
+nothing about it beyond this: a card must not paint over the border it was
+given. A régie marks the programme scene with a red one and the preview with a
+green one, and a card that filled its own frame afterwards would hide both.
+
 ### `Icon`
 
 `name`, from `nui.Icons.NAMES`, and `label` (optional; absent, the name is what a
