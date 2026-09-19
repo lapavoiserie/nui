@@ -60,6 +60,14 @@ above had already made weight, italic and family **props of `Text`** — the sam
 thing said twice, in two vocabularies, and a receiver sees whichever it happens
 to read.
 
+**`clip` is the tree's word, and only that.** A container that cannot fit its
+children cuts them anyway — a row of three labels wanting 224 points in 180 has
+to do something, and drawing over whatever stands beside it is the one answer
+that lies. But that cut is a fact about **one** layout, decided while arranging,
+and a backend making it must not describe it as `clip`: a receiver whose row is
+wider has nothing to cut and would cut all the same. `clip` means "cut here
+whether or not it fits", which is what a scroll view wants.
+
 Three things are deliberately *not* in the set. A free-standing `cornerRadius`,
 because a radius belongs to the thing being rounded and `backgroundColor` and
 `border` each carry theirs. `font`, `bold` and `italic`, because `Text` owns
