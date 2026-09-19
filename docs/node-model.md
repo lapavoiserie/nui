@@ -188,6 +188,41 @@ itself makes about not having a `text`.
 A backend with no tab control draws the bar as a `Picker` over the page: the
 index and the action are the same two things.
 
+### `Disclosure`
+
+`title`, `summary` (optional) and `open` (optional, `Bool`): a heading that is
+always visible, with a line on the right that says what is inside, and children
+that are shown or not.
+
+```
+Disclosure  title: "Position précise"  summary: "640, 302 · ×1,6 · 0°"
+  VStack  …four sliders…
+```
+
+**The summary is the application's sentence**, not a count. It says what the
+section holds *now* — the position, the scale, the rotation — so a reader knows
+whether to open it without opening it. A library writing that sentence would be
+writing in a language it does not know, which is the same argument
+`SecretInput.whenRefused` makes.
+
+**Whether it is open is the receiver's**, and it is not in the tree unless the
+application puts it there. A panel that opened a section is a panel whose
+person opened it, not a fact about the thing being described — and the machine
+that sent the tree has no business deciding what is unfolded on somebody else's
+screen. `open` exists for the case where the application *does* want to say,
+and a receiver honours it as the state to start from.
+
+That state has to **survive a rebuild**. An application that rebuilds its tree
+on every change — which is what a régie does — would otherwise fold every
+section on each keystroke. A backend keeps it under the view's place, not in
+the object: `pui` has a store by path, and identity there is the place and
+never the pointer.
+
+Children are always *described*, whether it is open or not: what a section
+holds does not change because somebody folded it, and a receiver that draws it
+open needs them. A section holding a secret is a different question, and the
+answer is the same as everywhere — a `SecretInput` carries no value.
+
 ### `Slider`
 
 `value`, `min`, `max`, `onValue`, and **`orientation`** (optional):
