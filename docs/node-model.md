@@ -188,6 +188,20 @@ itself makes about not having a `text`.
 A backend with no tab control draws the bar as a `Picker` over the page: the
 index and the action are the same two things.
 
+### `Slider`
+
+`value`, `min`, `max`, `onValue`, and **`orientation`** (optional):
+`horizontal`, the default, or `vertical`.
+
+A vertical slider runs **low at the bottom**. That is not a presentation
+choice: a fader that grew downwards would read as the opposite of every mixing
+desk ever built, and a tree that crossed to a machine drawing it the other way
+would be showing the wrong value, not a different shape. The orientation is
+*how it is laid out*; which end is the minimum is *what it means*.
+
+A backend with only a horizontal slider draws one, and the value is still the
+value.
+
 ### `Picker`
 
 `label` (optional), `selectedIndex` (`Int`, `-1` for none), `onSelect` (an index),

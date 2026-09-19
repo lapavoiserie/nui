@@ -542,6 +542,20 @@ class Check {
 		check("and anything else is an ordinary one",
 			!nui.Presentation.isSegmented("segment") && !nui.Presentation.isSegmented(null));
 
+		// --- Orientation ---
+		//
+		// Low at the bottom is MEANING: a fader growing downwards reads as the
+		// opposite of every mixing desk, and a tree drawn the other way would
+		// be showing the wrong value rather than another shape.
+		check("a vertical control is asked for by name",
+			(nui.Orientation.Vertical : String) == "vertical"
+			&& nui.Orientation.said("Vertical") == nui.Orientation.Vertical);
+		check("and anything else runs the usual way",
+			nui.Orientation.said(null) == nui.Orientation.Horizontal
+			&& nui.Orientation.said("sideways") == nui.Orientation.Horizontal);
+		check("which is the question a layout asks",
+			nui.Orientation.Vertical.isVertical() && !nui.Orientation.Horizontal.isVertical());
+
 		// --- Icon shapes ---
 		var shapeless = [for (n in nui.Icons.NAMES) if (nui.IconShapes.of(n) == null) n];
 		check("every icon name has a shape", shapeless.length == 0, shapeless);
