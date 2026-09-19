@@ -532,6 +532,16 @@ class Check {
 		check("and an unknown name has no kind, which is what refuses it",
 			nui.Modifiers.kindOf("cornerRadius") == null);
 
+		// --- Presentation ---
+		//
+		// A hint that fails soft, unlike masking: a forgotten presentation
+		// shows the same choices in another shape, a forgotten password shows
+		// the password.
+		check("a segmented picker is asked for by name",
+			nui.Presentation.isSegmented("segmented") && nui.Presentation.isSegmented("Segmented"));
+		check("and anything else is an ordinary one",
+			!nui.Presentation.isSegmented("segment") && !nui.Presentation.isSegmented(null));
+
 		// --- Icon shapes ---
 		var shapeless = [for (n in nui.Icons.NAMES) if (nui.IconShapes.of(n) == null) n];
 		check("every icon name has a shape", shapeless.length == 0, shapeless);

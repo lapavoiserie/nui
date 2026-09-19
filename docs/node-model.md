@@ -196,6 +196,18 @@ after a wire it arrives as a string callback and the index is its text. A
 renderer applies a received `selectedIndex` only when that option exists and the
 list is closed, and never reports a selection it made itself as a choice.
 
+**`style`** (optional) says how it should be *presented*: `segmented` asks for
+the choices side by side, as a row of buttons, rather than a list that opens.
+Two or three short labels — Preview/Program, 30/60 — read better that way, and
+a dozen sources do not.
+
+This is a **hint**, and it fails soft: a backend with no segmented control
+draws an ordinary picker, and nothing is lost but the shape. That is the right
+answer *here* and the wrong one for `PasswordInput`, and the difference is
+worth naming — a forgotten presentation shows the same choices differently, a
+forgotten password shows the password. A flag fails open only where opening is
+harmless.
+
 ### `Image`
 
 `src` (required), `alt` (required — `""` declares the picture decorative),
