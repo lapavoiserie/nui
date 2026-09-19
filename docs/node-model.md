@@ -42,6 +42,58 @@ model it as an ordered chain; `qui` currently has no chain at all — its modifi
 are no-ops that return `this` — which is one of the gaps [adopting](adopting.md)
 has to close.
 
+**And the names are a closed set** (`nui.Modifiers`): `padding`,
+`backgroundColor`, `foregroundColor`, `border`, `opacity`, `clip`, `width`,
+`height`. That had to be written down, because this page said a modifier is
+ordered and typed and never said what `type` may *be* — so six backends each
+invented their own, and by the time anybody counted they had drifted:
+
+| | emitted |
+|---|---|
+| `pui` | backgroundColor, border, clip, opacity, padding |
+| `cui` | alignment, backgroundColor, border, foregroundColor, height, padding, width |
+| `aui` | backgroundColor, bold, border, cornerRadius, font, foregroundColor, italic, opacity, padding, paddingHorizontal, paddingVertical |
+
+`pui` never sent a `foregroundColor`, so text colour did not cross from it at
+all. `aui` sent `font`, `bold` and `italic` as modifiers while the fonts canon
+above had already made weight, italic and family **props of `Text`** — the same
+thing said twice, in two vocabularies, and a receiver sees whichever it happens
+to read.
+
+Three things are deliberately *not* in the set. A free-standing `cornerRadius`,
+because a radius belongs to the thing being rounded and `backgroundColor` and
+`border` each carry theirs. `font`, `bold` and `italic`, because `Text` owns
+them. And `alignment`, because it is not a decoration — it changes how a parent
+places a child, and no two backends meant the same thing by it.
+
+## A colour is a role or its components
+
+```haxe
+Color.role(Danger)        // what it is FOR — the receiver resolves it
+Color.rgb(200, 50, 60)    // what it IS — nobody resolves anything
+```
+
+`backgroundColor`, `foregroundColor` and `border` carry a `nui.Color`, which is
+one of those two and crosses as a word: `"role:danger"` or `"#c8323c"`.
+
+**A role stays a role.** An application that resolved `Danger` to `#C8323C`
+would send that number to a panel in dark mode, or in high contrast, or on a
+platform whose accent the person chose themselves — and nothing in it would say
+it had ever meant "danger". Same argument as the scale, and the same as "a
+family is a name, never a file": the wire carries the word, and whoever draws it
+resolves it with what they have.
+
+Eight roles — `accent`, `danger`, `warning`, `success`, `surface`, `text`,
+`muted`, `border` — because each resolves to something real on at least two
+platforms. **Named colours do not cross.** `Red` is an rgb with extra steps: it
+cannot resolve to anything per-platform, and carrying it would make it look
+semantic when it is not. An application that wants red says `rgb` and means it.
+
+A backend that cannot represent a colour exactly approximates and says so on its
+own page — `cui` has sixteen and picks the nearest. That is the answer this page
+already gives for a terminal with one font, and the place to learn it is the
+backend's documentation rather than a surprise on screen.
+
 ## Actions never cross as closures
 
 A node exposes an action **identifier**, and an invoke entry point. The closure

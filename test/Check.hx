@@ -456,6 +456,67 @@ class Check {
 		check("and read back as the Bool an application wrote", (asked : Bool) && !(absent : Bool)
 			&& ((("Tabular" : nui.Numbers)) : Bool));
 
+		// --- Colour ---
+		//
+		// A role crosses as a role: resolved here, it would be a number sent to
+		// a machine that knows better -- dark mode, high contrast, or a
+		// platform whose accent the person chose themselves.
+		check("a role crosses as its word", (nui.Color.role(Danger) : String) == "role:danger"
+			&& (nui.Color.role(Accent) : String) == "role:accent");
+		check("and is read back as the role it was", nui.Color.roleOf("role:danger") == Danger
+			&& nui.Color.roleOf("role:accent") == Accent);
+		check("a component colour is not a role", nui.Color.roleOf("#c8323c") == null);
+		check("and a role has no components -- ask your palette, not black",
+			nui.Color.rgbOf("role:danger") == null);
+
+		check("components cross as six digits", (nui.Color.rgb(200, 50, 60) : String) == "#c8323c");
+		check("and out of range is clamped rather than wrapped",
+			(nui.Color.rgb(-5, 300, 0) : String) == "#00ff00");
+		var back = nui.Color.rgbOf("#c8323c");
+		check("and come back as the numbers that went in",
+			back != null && back.r == 200 && back.g == 50 && back.b == 60, back);
+
+		check("the short form is each digit doubled",
+			(nui.Color.hex("#f00") : String) == "#ff0000" && (nui.Color.hex("0AF") : String) == "#00aaff");
+		// A colour is written by hand, and a typo in one shows up as a wrong
+		// pixel nobody traces. Refused rather than quietly black.
+		check("and anything else is refused rather than quietly black",
+			nui.Color.hex("#ggg") == null && nui.Color.hex("#12345") == null
+			&& nui.Color.hex("rouge") == null);
+		check("a role nobody declared is refused too",
+			nui.Color.said("role:chartreuse") == null && nui.Color.said("role:danger") != null);
+
+		check("the eight roles, and no named colours", nui.Role.ALL.length == 8
+			&& nui.Role.of("DANGER") == Danger && nui.Role.of("red") == null);
+
+		// --- The modifier canon ---
+		//
+		// `nui.Modifier` always said a modifier is ordered and typed. It never
+		// said what `type` may BE, so six backends each invented their own set
+		// -- pui never sent a foregroundColor at all, and aui sent font, bold
+		// and italic as modifiers while the fonts canon had already made them
+		// props of Text.
+		check("eight names, and knowing them is the point", nui.Modifiers.NAMES.length == 8
+			&& nui.Modifiers.knows("backgroundColor") && nui.Modifiers.knows("clip"));
+		check("a misspelling is not one", !nui.Modifiers.knows("backgroundColour")
+			&& !nui.Modifiers.knows(null));
+		// What the fonts canon already owns does not get a second home here.
+		check("and nor is anything Text says about itself",
+			!nui.Modifiers.knows("font") && !nui.Modifiers.knows("bold")
+			&& !nui.Modifiers.knows("italic"));
+		// A radius belongs to the thing being rounded; a free-standing one has
+		// to apply to whatever comes next, which nobody can read off a list.
+		check("nor a radius with nothing to round", !nui.Modifiers.knows("cornerRadius"));
+		check("a colour modifier takes a colour, which is a string",
+			nui.Modifiers.kindOf("backgroundColor") == "KString"
+			&& nui.Modifiers.kindOf("border") == "KString");
+		check("and the measures take numbers", nui.Modifiers.kindOf("padding") == "KFloat"
+			&& nui.Modifiers.kindOf("opacity") == "KFloat");
+		check("clip takes nothing, so it is written as a flag",
+			nui.Modifiers.kindOf("clip") == "KBool");
+		check("and an unknown name has no kind, which is what refuses it",
+			nui.Modifiers.kindOf("cornerRadius") == null);
+
 		// --- Icon shapes ---
 		var shapeless = [for (n in nui.Icons.NAMES) if (nui.IconShapes.of(n) == null) n];
 		check("every icon name has a shape", shapeless.length == 0, shapeless);
