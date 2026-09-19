@@ -113,6 +113,57 @@ class Modifiers {
 		return name != null && NAMES.indexOf(name) >= 0;
 
 	/**
+		What each modifier carries, in the order it carries it.
+
+		`border` is "a colour, then a width and a radius" -- the wire has always
+		said so, and the markup could only write the colour, so an application
+		wanting a 3-pixel border had to add the modifier by hand beside markup
+		that was checked. Named here so an attribute can be written whole:
+
+		```haxe
+		<Tappable border={{colour: Color.role(Success), width: 3, radius: 6}}/>
+		<VStack padding={{top: 8, left: 12}}/>
+		```
+
+		Three names rather than one -- `borderWidth`, `borderRadius` -- would
+		have reopened the door this list closed on a free-standing
+		`cornerRadius`: a radius belongs to the thing it rounds, and a floating
+		one has to apply to whatever comes next, which nobody can read off a
+		list.
+
+		## `fill` — what an unnamed float means
+
+		The two modifiers with several floats do not mean the same thing by
+		silence, and that is not an inconsistency to iron out:
+
+		- **`padding` fills.** Its floats are four edges, and an edge nobody
+		  mentioned has no padding. Zero is the answer, and writing
+		  `{top: 8}` means *only* the top -- not `8` everywhere, which is what
+		  the positional short form `padding={8}` means and which is exactly
+		  why an object must not be read as a short form.
+		- **`border` and `backgroundColor` do not fill.** Their last float is a
+		  radius, and an unnamed radius is the one the control draws with
+		  naturally -- a zero would square the corners of a button that had
+		  round ones, which nobody writing `{colour: …, width: 3}` asked for.
+		  So an unnamed trailing float is simply not written, and naming a
+		  later part without an earlier one (a radius with no width) is refused
+		  rather than filled with a zero that would draw no border at all.
+	**/
+	public static function partsOf(name:Null<String>):Null<ModifierParts> {
+		return switch (name) {
+			case BACKGROUND_COLOR: {strings: ["colour"], floats: ["radius"], fill: false};
+			case FOREGROUND_COLOR: {strings: ["colour"], floats: [], fill: false};
+			case BORDER: {strings: ["colour"], floats: ["width", "radius"], fill: false};
+			case PADDING: {strings: [], floats: ["top", "right", "bottom", "left"], fill: true};
+			case OPACITY: {strings: [], floats: ["opacity"], fill: false};
+			case WIDTH: {strings: [], floats: ["width"], fill: false};
+			case HEIGHT: {strings: [], floats: ["height"], fill: false};
+			case FLEX: {strings: [], floats: ["flex"], fill: false};
+			case _: null;
+		}
+	}
+
+	/**
 		What kind of value this modifier's attribute takes, in `mui`'s alphabet.
 
 		`mui`'s markup writes a modifier as an attribute, so it needs the same
@@ -128,4 +179,16 @@ class Modifiers {
 			case _: null;
 		}
 	}
+}
+
+/** What one modifier carries, part by part. See `Modifiers.partsOf`. **/
+typedef ModifierParts = {
+	/** The strings it carries, in order. Always a colour, so far. **/
+	var strings:Array<String>;
+
+	/** The floats it carries, in order. **/
+	var floats:Array<String>;
+
+	/** Whether a float nobody named is a zero (true) or simply absent. **/
+	var fill:Bool;
 }

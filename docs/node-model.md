@@ -66,6 +66,37 @@ because a radius belongs to the thing being rounded and `backgroundColor` and
 them. And `alignment`, because it is not a decoration — it changes how a parent
 places a child, and no two backends meant the same thing by it.
 
+### A modifier can be written whole
+
+Each name says what it carries and in what order (`nui.Modifiers.partsOf`), so a
+modifier with several parts can be written as one thing rather than built by
+hand:
+
+```haxe
+<Tappable border={{colour: Color.role(Border), width: 3, radius: 6}}/>
+<VStack padding={{top: 8, left: 12}}/>
+```
+
+The wire has carried a border's width and radius since there was a wire. Only
+the markup could write just the colour, so a panel that wanted a three-pixel
+border added the modifier by hand **beside markup that was checked** — which is
+the shape of every defect this canon has been closing.
+
+Three names — `borderColor`, `borderWidth`, `borderRadius` — would have reopened
+the door this set closed on a free-standing `cornerRadius`. Naming the parts of
+one modifier keeps the radius attached to the thing it rounds.
+
+**Silence does not mean the same thing everywhere, and that is deliberate.**
+`padding`'s floats are four edges, and an edge nobody mentioned has no padding:
+`{top: 8}` is a padding at the top and nowhere else. It is *not* the positional
+short form `padding={8}`, which is eight all round — an object is not a short
+form, and reading it as one is how a panel gets three unasked-for edges.
+`border` and `backgroundColor` end in a radius, and an unnamed radius is the one
+the control draws with naturally; a zero there would square the corners of a
+button that had round ones. So a trailing part nobody named is simply not
+written, and naming a later part without an earlier one — a radius with no width,
+which draws nothing at all — is refused rather than filled with a zero.
+
 ## A colour is a role or its components
 
 ```haxe

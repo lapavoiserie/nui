@@ -556,6 +556,25 @@ class Check {
 		check("which is the question a layout asks",
 			nui.Orientation.Vertical.isVertical() && !nui.Orientation.Horizontal.isVertical());
 
+		// A modifier says what it carries and in what order, so an attribute
+		// can be written whole: `border={{colour: …, width: 3, radius: 6}}`.
+		// The wire always carried the three; only the markup could not write
+		// them.
+		var borderParts = nui.Modifiers.partsOf("border");
+		check("a border is a colour, then a width and a radius",
+			borderParts != null && borderParts.strings.join(",") == "colour"
+			&& borderParts.floats.join(",") == "width,radius");
+		var padParts = nui.Modifiers.partsOf("padding");
+		check("and a padding is four edges, clockwise from the top",
+			padParts != null && padParts.floats.join(",") == "top,right,bottom,left");
+		check("something that is not a modifier carries nothing",
+			nui.Modifiers.partsOf("cornerRadius") == null);
+		// The two modifiers with several floats do not mean the same thing by
+		// silence: an unmentioned edge has no padding, an unmentioned radius is
+		// the one the control draws with.
+		check("an edge nobody named is a zero", padParts.fill == true);
+		check("a radius nobody named is absent, not square", borderParts.fill == false);
+
 		// --- Icon shapes ---
 		var shapeless = [for (n in nui.Icons.NAMES) if (nui.IconShapes.of(n) == null) n];
 		check("every icon name has a shape", shapeless.length == 0, shapeless);
