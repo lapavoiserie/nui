@@ -148,6 +148,46 @@ picture is pulled by content and verified because it is data on a screen;
 installing a typeface is an act on a machine. A backend with one font — a
 terminal — honours `weight`, `italic` and `numbers`, and ignores the rest.
 
+### `Tabs` and `Tab`
+
+`Tabs` carries `selectedIndex` (`Int`) and `onSelect` (an index), and its
+children are `Tab` nodes. A `Tab` carries `label` and, optionally, `icon` — a
+name from `nui.Icons`.
+
+**Only the selected tab carries its page**, as its child. The others are empty.
+
+```
+Tabs  selectedIndex: 1  onSelect: …
+  Tab  label: "Source"
+  Tab  label: "Transitions"
+    VStack  …the page…
+  Tab  label: "Diffusion"
+  Tab  label: "Projet"
+```
+
+That one rule does three jobs at once, which is why it is the rule.
+
+**A snapshot stays one picture.** `pui` and `cui` used to *flatten* a tab view
+to its selected page and say so in a trace, because describing four pages
+describes views nobody is looking at. Here there is nothing to flatten: the
+tree already holds one page, and the tab titles — which are what a receiver
+needs to draw the bar — are all there.
+
+**The selection is the application's**, like a `Picker`'s index. It is in the
+tree and it comes back through `onSelect`, so a tap somewhere else entirely —
+a click on a source in a video monitor — can bring the Source tab back by
+writing a cell. A selection living inside the control could not be reached that
+way.
+
+**A page nobody chose cannot leak.** The Broadcast tab of a régie holds a
+`SecretInput`; an unselected tab has no children, so there is nothing in the
+tree to project, redact or forget to redact. The guarantee is structural rather
+than a rule someone has to remember — which is the same argument `SecretInput`
+itself makes about not having a `text`.
+
+A backend with no tab control draws the bar as a `Picker` over the page: the
+index and the action are the same two things.
+
 ### `Picker`
 
 `label` (optional), `selectedIndex` (`Int`, `-1` for none), `onSelect` (an index),
