@@ -73,6 +73,11 @@ class Construct {
 		var before:Array<Expr> = [];
 		for (prop in props) {
 			if (prop.callback == null || prop.field == null) continue;
+			// A control that holds a NAME rather than a cell -- `sui`'s, whose
+			// state lives on the Swift side behind a registry. There is no
+			// cell to make: markup carries the cell itself and the backend
+			// says what its name is.
+			if (prop.named == true) continue;
 			var seed = given.get(prop.name);
 			var tell = given.get(prop.callback);
 			if (seed == null || tell == null) return null;
@@ -90,7 +95,16 @@ class Construct {
 					: kids);
 			} else if (byField.exists(arg.name)) {
 				var prop = byField.get(arg.name);
-				if (prop.callback != null) {
+				if (prop.named == true) {
+					// The cell as written, turned into the name this control
+					// takes. `d.named` is the backend's own module: only it
+					// knows that a cell has a name and which field that is.
+					var cell = given.get(prop.name);
+					if (cell == null || d.named == null) return null;
+					var parts = d.named.split(".");
+					parts.push("nameOf");
+					args.push({expr: ECall(macro $p{parts}, [cell]), pos: pos});
+				} else if (prop.callback != null) {
 					args.push(macro $i{"__cell_" + prop.field});
 				} else {
 					var written = given.get(prop.name);
