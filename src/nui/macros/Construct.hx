@@ -67,24 +67,15 @@ class Construct {
 		var actionByField = new Map<String, Declarations.Action>();
 		for (action in actions) actionByField.set(action.field, action);
 
-		// A two-way value needs its cell before the control exists, so the
-		// control can be handed it and the callback can be pointed at it --
-		// the same order `Derive` builds one in, for the same reason.
-		var before:Array<Expr> = [];
-		for (prop in props) {
-			if (prop.callback == null || prop.field == null) continue;
-			// A control that holds a NAME rather than a cell -- `sui`'s, whose
-			// state lives on the Swift side behind a registry. There is no
-			// cell to make: markup carries the cell itself and the backend
-			// says what its name is.
-			if (prop.named == true) continue;
-			var seed = given.get(prop.name);
-			var tell = given.get(prop.callback);
-			if (seed == null || tell == null) return null;
-			if (d.cells == null) return null;
-			var cell = "__cell_" + prop.field;
-			before.push(macro var $cell = ${cellOf(d, prop.kind, siteOf(pos, prop.field), seed, tell)});
-		}
+		// Nothing to make: a two-way binding IS a cell. Markup writes
+		// `isOn={lit_}` and the cell goes straight to the constructor, where
+		// each backend's binding abstract takes it through its own `@:from`.
+		//
+		// It was a value and a callback here, with a factory per backend to
+		// turn the two into a cell. That was the wrong shape, and `sui` is
+		// where it showed: its controls hold a NAME, so there was nothing to
+		// make and no way to make it. Binding the cell is what a view written
+		// by hand does, and it costs four fewer modules.
 
 		var args:Array<Expr> = [];
 		for (arg in Declarations.argumentsOf(d, type)) {
@@ -95,17 +86,21 @@ class Construct {
 					: kids);
 			} else if (byField.exists(arg.name)) {
 				var prop = byField.get(arg.name);
-				if (prop.named == true) {
-					// The cell as written, turned into the name this control
-					// takes. `d.named` is the backend's own module: only it
-					// knows that a cell has a name and which field that is.
+				if (prop.callback != null) {
+					// The cell as written. A control that holds a NAME rather
+					// than the cell -- `sui`'s, whose state lives on the Swift
+					// side -- is handed it through the backend's own module,
+					// because knowing that a cell HAS a name is its business.
 					var cell = given.get(prop.name);
-					if (cell == null || d.named == null) return null;
-					var parts = d.named.split(".");
-					parts.push("nameOf");
-					args.push({expr: ECall(macro $p{parts}, [cell]), pos: pos});
-				} else if (prop.callback != null) {
-					args.push(macro $i{"__cell_" + prop.field});
+					if (cell == null) return null;
+					if (prop.named != true) {
+						args.push(cell);
+					} else {
+						if (d.named == null) return null;
+						var parts = d.named.split(".");
+						parts.push("nameOf");
+						args.push({expr: ECall(macro $p{parts}, [cell]), pos: pos});
+					}
 				} else {
 					var written = given.get(prop.name);
 					args.push(written != null ? written : fallback(defaults, arg.name));
@@ -118,46 +113,11 @@ class Construct {
 			}
 		}
 
-		var made:Expr = {expr: ENew(pathOf(path), args), pos: pos};
-		if (before.length == 0) return made;
-		before.push(made);
-		return {expr: EBlock(before), pos: pos};
+		return {expr: ENew(pathOf(path), args), pos: pos};
 	}
 
 	static function fallback(defaults:Map<String, Expr>, name:String):Expr
 		return defaults.exists(name) ? defaults.get(name) : macro null;
-
-	/**
-		Where this control was written, as a name a cell can be kept under.
-
-		A markup element is a PLACE, and its cell has to be the same one from
-		one build to the next -- the rule `nui`'s node identity already
-		follows: the place, never the pointer. `aui` keeps its cells in a
-		registry and creates a Compose state for each, so a fresh cell per
-		rebuild would grow that map without bound and strand a state on the
-		Kotlin side each time.
-
-		The other backends have nothing to keep and ignore it. They are handed
-		it anyway, because a factory that takes the key on one backend and not
-		on another is two shapes of the same question.
-	**/
-	static function siteOf(pos:Position, field:String):Expr {
-		var at = Context.getPosInfos(pos);
-		var file = at.file.split("/").pop();
-		return macro $v{"mui:" + file + ":" + at.min + ":" + field};
-	}
-
-	static function cellOf(d:Declarations.Dialect, kind:String, site:Expr,
-			seed:Expr, tell:Expr):Expr {
-		var parts = d.cells.split(".");
-		parts.push(switch (kind) {
-			case "Bool": "boolCellAt";
-			case "Int": "intCellAt";
-			case "Float": "floatCellAt";
-			case _: "stringCellAt";
-		});
-		return {expr: ECall(macro $p{parts}, [site, seed, tell]), pos: Context.currentPos()};
-	}
 
 	static function pathOf(path:String):TypePath {
 		var parts = path.split(".");
