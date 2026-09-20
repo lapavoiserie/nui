@@ -14,6 +14,50 @@ two words for one idea.
 | **action** | id + invoke | An opaque identifier; the closure stays on the Haxe side. |
 | **rebuild** | signal | "The tree changed, re-read it." Pull mode only. |
 
+## Where a tree came from decides what a mistake is
+
+Three words, because two were not enough and "local" was wrong. What matters is
+not where a tree lives but **when its shape could have been known**.
+
+| | what it is | a mistake in it is |
+|---|---|---|
+| **written** | in the source, against a backend somebody chose — `mui` markup, or a backend's own views built by hand | a **compile error**, naming the offender and the accepted set |
+| **assembled** | built by our own code while running, with type names as strings — `new Node("Spacer")` | **nothing**, today. This is the blind spot. |
+| **received** | arrived as data: a Companion frame, a relayed surface, a streamed interface | **degradation, said out loud** — a marker is legitimate here and nowhere else |
+
+A **written** tree is checked: a tag nothing declares, an attribute a control
+does not carry, a decoration the backend cannot draw are all refused by name
+before the program runs. That is the rule
+`compile-time-over-placeholder` states and the reason `?TabView` must never
+appear for something somebody typed.
+
+A **received** tree cannot be checked — failing the build is not on offer for
+data that arrives at three in the morning — so a backend honours what it can,
+skips the rest, and **says which**. Quietly skipping is how a property comes to
+be declared, carried across a wire, and drawn nowhere.
+
+An **assembled** tree is the one to be suspicious of. It is ours, so it feels
+safe, and it is a string, so nothing checks it. `pui`'s fallback for a missing
+video monitor builds `new Node("Spacer")`; `wui` had no `Spacer` node type and
+drew the text `?Spacer`. Neither side was wrong on its own terms. Treat this as
+a category to **remove** rather than to serve: a tree assembled from
+declarations is written, and one assembled from data somebody sent is received.
+
+### The door is not the origin
+
+Separately from where a tree came from, there are two ways it reaches a screen:
+
+- **built** — the backend's own controls are constructed (`nui.macros.Construct`
+  while compiling, `nui.macros.Derive` at runtime);
+- **read** — the backend reads the tree as data, natively, without copying it
+  into views. `sui.nui.Received` opens this door: *"how this renderer reads a
+  tree it did not build"*.
+
+**A written tree goes through the built door; a received tree goes through the
+read door.** Crossing them compiles and is wrong: sending a written screen
+through the read door puts its closures in a string-id registry and bypasses the
+backend's own read tracking, which is what those backends exist for.
+
 ## Text is a property
 
 There is no `getText` accessor. A `Text` node carries a `"text"` property like any
