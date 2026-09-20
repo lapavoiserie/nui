@@ -78,7 +78,7 @@ class Construct {
 			if (seed == null || tell == null) return null;
 			if (d.cells == null) return null;
 			var cell = "__cell_" + prop.field;
-			before.push(macro var $cell = ${cellOf(d, prop.kind, seed, tell)});
+			before.push(macro var $cell = ${cellOf(d, prop.kind, siteOf(pos, prop.field), seed, tell)});
 		}
 
 		var args:Array<Expr> = [];
@@ -113,15 +113,36 @@ class Construct {
 	static function fallback(defaults:Map<String, Expr>, name:String):Expr
 		return defaults.exists(name) ? defaults.get(name) : macro null;
 
-	static function cellOf(d:Declarations.Dialect, kind:String, seed:Expr, tell:Expr):Expr {
+	/**
+		Where this control was written, as a name a cell can be kept under.
+
+		A markup element is a PLACE, and its cell has to be the same one from
+		one build to the next -- the rule `nui`'s node identity already
+		follows: the place, never the pointer. `aui` keeps its cells in a
+		registry and creates a Compose state for each, so a fresh cell per
+		rebuild would grow that map without bound and strand a state on the
+		Kotlin side each time.
+
+		The other backends have nothing to keep and ignore it. They are handed
+		it anyway, because a factory that takes the key on one backend and not
+		on another is two shapes of the same question.
+	**/
+	static function siteOf(pos:Position, field:String):Expr {
+		var at = Context.getPosInfos(pos);
+		var file = at.file.split("/").pop();
+		return macro $v{"mui:" + file + ":" + at.min + ":" + field};
+	}
+
+	static function cellOf(d:Declarations.Dialect, kind:String, site:Expr,
+			seed:Expr, tell:Expr):Expr {
 		var parts = d.cells.split(".");
 		parts.push(switch (kind) {
-			case "Bool": "boolCell";
-			case "Int": "intCell";
-			case "Float": "floatCell";
-			case _: "stringCell";
+			case "Bool": "boolCellAt";
+			case "Int": "intCellAt";
+			case "Float": "floatCellAt";
+			case _: "stringCellAt";
 		});
-		return {expr: ECall(macro $p{parts}, [seed, tell]), pos: Context.currentPos()};
+		return {expr: ECall(macro $p{parts}, [site, seed, tell]), pos: Context.currentPos()};
 	}
 
 	static function pathOf(path:String):TypePath {
