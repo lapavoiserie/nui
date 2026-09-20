@@ -62,8 +62,27 @@ class Construct {
 		var content = Declarations.contentFor(d, type);
 		var defaults = Declarations.defaultsOf(d, type);
 
-		var byField = new Map<String, Declarations.Prop>();
-		for (prop in props) if (prop.field != null) byField.set(prop.field, prop);
+		// Keyed by the constructor ARGUMENT a declaration fills, and by the
+		// field only when it does not say. They are usually the same name and
+		// were assumed to be: `sui.ui.Text` declares `@:prop("text") var
+		// content` and takes `text`, so matching on the field found nothing,
+		// the argument fell back to its default, and every string in a
+		// transpiled screen came out empty. `Declarations` knew -- `Prop` has
+		// carried `argument` all along.
+		var byArgument = new Map<String, Declarations.Prop>();
+		for (prop in props) {
+			// Three keys, least specific first so the surer one wins. A
+			// declaration usually names its field after the argument it
+			// fills, and matching on the field alone assumed that always.
+			// `sui.ui.Text` declares `@:prop("text") var content` and its
+			// constructor takes `text`: nothing matched, the argument took
+			// its default, and every string in a transpiled screen came out
+			// empty. The CANONICAL name is what bridges them, and it is the
+			// one thing a declaration always says.
+			if (prop.name != null) byArgument.set(prop.name, prop);
+			if (prop.field != null) byArgument.set(prop.field, prop);
+			if (prop.argument != null) byArgument.set(prop.argument, prop);
+		}
 		var actionByField = new Map<String, Declarations.Action>();
 		for (action in actions) actionByField.set(action.field, action);
 
@@ -84,8 +103,8 @@ class Construct {
 				args.push(Declarations.takesOneChild(d, type)
 					? macro { var __kids = $kids; __kids.length > 0 ? __kids[0] : null; }
 					: kids);
-			} else if (byField.exists(arg.name)) {
-				var prop = byField.get(arg.name);
+			} else if (byArgument.exists(arg.name)) {
+				var prop = byArgument.get(arg.name);
 				if (prop.callback != null) {
 					// The cell as written. A control that holds a NAME rather
 					// than the cell -- `sui`'s, whose state lives on the Swift
