@@ -55,7 +55,15 @@ class Construct {
 			given:Map<String, Expr>, children:Null<Expr>, pos:Position):Null<Expr> {
 		var path = Declarations.classOf(d, type);
 		if (path == null) return null;
-		if (Declarations.childrenFor(d, type) != null) return null;
+
+		// Children that are DATA -- a `Picker`'s options. This used to give up
+		// here, because turning `<Text text="HDMI"/>` back into a string means
+		// reading inside a child element, which happens one layer up. It does
+		// now (`mui.macros.Markup.dataChildrenOf`) and hands the array in under
+		// the field's name, so the only thing left to refuse is a control whose
+		// data children nobody wrote.
+		var data = Declarations.childrenFor(d, type);
+		if (data != null && !given.exists(data.field)) return null;
 
 		var props = Declarations.propsFor(d, type);
 		var actions = Declarations.actionsFor(d, type);
@@ -103,6 +111,8 @@ class Construct {
 				args.push(Declarations.takesOneChild(d, type)
 					? macro { var __kids = $kids; __kids.length > 0 ? __kids[0] : null; }
 					: kids);
+			} else if (data != null && arg.name == data.field) {
+				args.push(given.get(data.field));
 			} else if (byArgument.exists(arg.name)) {
 				var prop = byArgument.get(arg.name);
 				if (prop.callback != null) {
