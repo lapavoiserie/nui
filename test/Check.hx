@@ -239,6 +239,39 @@ class Check {
 		nui.Snapshot.project(gen3tree, stable);
 		stable.invoke(g2.children[0].actions.get("onClick"));
 		check("a control that left the tree retires its id", hits.length == 1);
+		// --- ...and the place is not enough: an insertion must not misdirect ---
+		// A tap one generation late on "Delete b", after a row was inserted
+		// above it, used to run whatever had taken its slot.
+		var ran = [];
+		var rows = new nui.Snapshot.ActionTable();
+		var beforeInsert = nui.Snapshot.project(new Node("VStack")
+			.child(new Node("Button").prop("label", PString("Delete a")).prop("onClick", PCallback(() -> ran.push("a"))))
+			.child(new Node("Button").prop("label", PString("Delete b")).prop("onClick", PCallback(() -> ran.push("b")))), rows);
+		var deleteB = beforeInsert.children[1].actions.get("onClick");
+		var afterInsert = nui.Snapshot.project(new Node("VStack")
+			.child(new Node("Button").prop("label", PString("Delete new")).prop("onClick", PCallback(() -> ran.push("new"))))
+			.child(new Node("Button").prop("label", PString("Delete a")).prop("onClick", PCallback(() -> ran.push("a"))))
+			.child(new Node("Button").prop("label", PString("Delete b")).prop("onClick", PCallback(() -> ran.push("b")))), rows);
+		rows.invoke(deleteB);
+		check("a late tap after an insertion is dropped, never run on the control that took the place",
+			ran.length == 0);
+		check("...and the control itself, moved down, answers under a new id",
+			afterInsert.children[2].actions.get("onClick") != deleteB);
+		var toggled = new nui.Snapshot.ActionTable();
+		var asButton = nui.Snapshot.project(new Node("VStack")
+			.child(new Node("Button").prop("onClick", PCallback(() -> ran.push("button")))), toggled);
+		nui.Snapshot.project(new Node("VStack")
+			.child(new Node("Tappable").prop("onClick", PCallback(() -> ran.push("tappable")))), toggled);
+		toggled.invoke(asButton.children[0].actions.get("onClick"));
+		check("a different TYPE at the same place is a different control", ran.length == 0);
+		var typing = new nui.Snapshot.ActionTable();
+		var t1 = nui.Snapshot.project(new Node("VStack")
+			.child(new Node("TextInput").prop("text", PString("a")).prop("onText", PCallbackString(v -> ran.push(v)))), typing);
+		var t2 = nui.Snapshot.project(new Node("VStack")
+			.child(new Node("TextInput").prop("text", PString("ab")).prop("onText", PCallbackString(v -> ran.push(v)))), typing);
+		check("a field's VALUE is not part of what it is: its id survives typing",
+			t1.children[0].actions.get("onText") == t2.children[0].actions.get("onText"));
+
 		var keyedA = new Node("List")
 			.child(new Node("Row", "a").prop("onClick", PCallback(() -> hits.push("a"))))
 			.child(new Node("Row", "b").prop("onClick", PCallback(() -> hits.push("b"))));

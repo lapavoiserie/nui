@@ -122,7 +122,50 @@ class Snapshot {
 		beat every two seconds, each beat cleared the whole table, and a
 		human's Enter reliably found a freshly-retired id — "stale remote
 		tap" on a button that had not changed at all.
+
+		## The place is not enough, and the key says what the control IS
+
+		"The current closure at that place" is what the button means only
+		while it is the same button. INSERT one above it and the place names
+		somebody else: a tap on "Delete row 2", arriving one generation late,
+		ran whatever had taken slot 2 — a wrong action, on another machine,
+		with nothing on either side to say so. Found on 2026-09-21 by asking
+		where else `sui`'s slider crash could live: same hole, across a wire.
+
+		So the key also carries a **signature** (`signatureOf`): the node's type
+		and what it says — its label. An unchanged button keeps its id, which
+		is everything the paragraph above bought. A place taken by a different
+		control is a NEW key: the old id retires at the sweep, and the late tap
+		is dropped with a word (`invoke` on an unknown id) instead of being
+		misdirected. A button whose own label changed — "Play" to "Pause" —
+		drops a late tap too, and that is the safe reading: the person tapped
+		Play, and what is there now would pause.
+
+		What it cannot tell apart is two unkeyed siblings of one type that say
+		the same thing — a column of "Delete" buttons. That is what a key is
+		for, and it is the one case where writing one is not optional.
 	**/
+	/** The props that say what a control is called. Never a VALUE: a field's
+		`text` changes with every keystroke, and an id that moved with it
+		would drop the next one. **/
+	static final SAYS = ["label", "title", "placeholder", "icon", "name"];
+
+	/** What a control is, for its actions' keys: its type and what it says. **/
+	static function signatureOf(node:Node):String {
+		var said = "";
+		if (node.props != null) {
+			for (key in SAYS) {
+				var value = PropValueTools.resolve(node.props.get(key));
+				switch (value) {
+					case PString(v) if (v != ""): said = v;
+					case _:
+				}
+				if (said != "") break;
+			}
+		}
+		return node.type + ":" + said;
+	}
+
 	static function projectAt(node:Node, table:ActionTable, path:String):SnapshotNode {
 		if (node == null) return null;
 		var out:SnapshotNode = {type: node.type};
@@ -133,6 +176,7 @@ class Snapshot {
 			var actions:haxe.DynamicAccess<Int> = {};
 			var hasProps = false;
 			var hasActions = false;
+			var signature:Null<String> = null;
 			for (key in node.props.keys()) {
 				var resolved = PropValueTools.resolve(node.props.get(key));
 				if (resolved == null) continue;
@@ -143,7 +187,8 @@ class Snapshot {
 					case PBool(v): props.set(key, v); hasProps = true;
 					case PCallback(_) | PCallbackString(_) | PCallbackFloat(_)
 						| PCallbackInt(_) | PCallbackBool(_):
-						actions.set(key, table.registerAt(path + "#" + key, resolved));
+						if (signature == null) signature = signatureOf(node);
+						actions.set(key, table.registerAt(path + "#" + key + "@" + signature, resolved));
 						hasActions = true;
 					case PReactive(_):
 						// resolve() runs reactives to a fixed point; reaching

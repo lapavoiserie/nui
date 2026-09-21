@@ -68,6 +68,17 @@ Three properties are decided here rather than by each caller:
   keyed by place, a tap that arrives after a re-projection invokes the current
   closure instead of finding a hole. Clearing was exactly how the first
   interactive companion turned every keystroke into a stale remote tap.
+
+  **The place alone is not the key.** An id is keyed by place *and by what the
+  control is* — its type and its label. Insert a button above another and the
+  place names somebody else: a tap on "Delete row 2" arriving one generation
+  late would have run whatever took slot 2, on another machine, silently. With
+  the signature in the key an unchanged button keeps its id, a place taken by a
+  different control is a new one, and the late tap is dropped with a word
+  instead of misdirected. A value is never part of it — a field's id survives
+  typing. Two unkeyed siblings of one type that say the same thing, a column
+  of "Delete" buttons, are the case it cannot tell apart: that is what a `key`
+  is for, and there it is not optional.
 - **Whether the first run publishes** is `publishFirst`, and it is a real
   question rather than a knob. A second process that follows the same
   declaration — an iOS widget extension handling a tap — would otherwise
