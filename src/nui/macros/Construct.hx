@@ -122,7 +122,9 @@ class Construct {
 					}
 				} else {
 					var written = given.get(prop.name);
-					args.push(written != null ? written : fallback(defaults, arg.name));
+					args.push(written != null
+						? converted(prop, written)
+						: fallback(defaults, arg.name));
 				}
 			} else if (actionByField.exists(arg.name)) {
 				var written = given.get(actionByField.get(arg.name).name);
@@ -133,6 +135,20 @@ class Construct {
 		}
 
 		return {expr: ENew(pathOf(path), args), pos: pos};
+	}
+
+	/**
+		The value as the control measures it.
+
+		The canon is in points; a backend whose unit is something else says so
+		on the declaration (`@:convert`). Applied here, and by `Derive` for a
+		tree that arrived, so a written `spacing={12}` and a received one mean
+		the same thing.
+	**/
+	static function converted(prop:Declarations.Prop, value:Expr):Expr {
+		if (prop.convert == null) return value;
+		var parts = prop.convert.split(".");
+		return {expr: ECall(macro $p{parts}, [value]), pos: value.pos};
 	}
 
 	static function fallback(defaults:Map<String, Expr>, name:String):Expr

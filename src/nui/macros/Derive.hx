@@ -195,6 +195,15 @@ class Derive {
 		// it can hold one. Without this, `pui.ui.SecretInput`'s `whenRefused`
 		// arrives as "" rather than absent, and a refusal the application never
 		// wrote would be shown as an empty sentence.
+		// The canon measures in points; a control that measures otherwise says
+		// so on its declaration. Same conversion as `Construct` applies to a
+		// written tree, so the two doors cannot disagree -- and applied only
+		// to what the node SAID, never to the control's own default, which is
+		// already in the control's unit.
+		if (prop.convert != null) {
+			var parts = prop.convert.split(".");
+			got = {expr: ECall(macro $p{parts}, [got]), pos: haxe.macro.Context.currentPos()};
+		}
 		var absent = fallback != null
 			? fallback
 			: (allowAbsent && prop.nullable ? macro null : null);

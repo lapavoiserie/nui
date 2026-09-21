@@ -74,6 +74,31 @@ identity from a stable property; `nui` makes the key explicit instead.
 
 Set one on anything interactive, and on list rows.
 
+## A length is in points
+
+`spacing`, `padding`, `width`, `height`, a border's width and radius: all of
+them are **points** — the device-independent unit every surface in this family
+already draws in. The canon says so here because it was said nowhere, and a
+number without a unit is a number every backend is free to read its own way.
+
+A backend that does not measure in points **converts at its door**, and does
+not reinterpret the number. `cui` is the one: its unit is a character cell,
+taken as 8 points wide and 16 tall, and `cui.nui.Units` does the arithmetic. A
+declaration names the conversion (`@:convert(cui.nui.Units.rows)`), so
+`nui.macros.Construct` applies it to a tree that was **written** and
+`nui.macros.Derive` to one that **arrived** — one rule, both doors.
+
+What it cost to leave unsaid, measured on 2026-09-21: `spacing={12}`, a fair
+gap between two rows of a form, was twelve blank lines on a terminal. The
+kitchen sink's root stack spent 92 of a 140-row screen on its own spacing and
+padding, squeezed a group to 22 rows while that group's padding asked for 24,
+and the group drew nothing at all. It was read first as a rendering defect. The
+same screen now fits in 44 rows.
+
+Rounding is to the nearest cell, so eight points is one row rather than none:
+somebody who asked for space gets some. Below half a cell it rounds away, which
+is the honest answer — a terminal has nothing smaller.
+
 ## Modifiers are a list, not a map
 
 ```haxe

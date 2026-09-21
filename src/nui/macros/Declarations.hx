@@ -234,6 +234,7 @@ class Declarations {
 				field: field == null ? null : field.name,
 				name: name,
 				callback: callback,
+				convert: field == null ? null : convertOf(field, path),
 				kind: kindOf(typeOfDecl(decl), callback != null, decl.pos),
 				argument: arg == null ? null : arg.name,
 				optional: arg == null ? true : arg.opt,
@@ -692,6 +693,24 @@ class Declarations {
 		A bound value is read through its `State<T>`, so the kind is the
 		parameter's and not the state's.
 	**/
+	/**
+		`@:convert(path.to.fn)`, the function a canonical value passes through.
+
+		Written as a field expression, not a string: a misspelt path is then a
+		compile error where it is written rather than a call that fails to
+		resolve somewhere inside a macro.
+	**/
+	static function convertOf(field:ClassField, path:String):Null<String> {
+		var meta = field.meta.extract(":convert");
+		if (meta.length == 0) return null;
+		if (meta[0].params.length != 1) {
+			Context.error('$path: `@:convert` takes one function -- '
+				+ "`@:convert(cui.nui.Units.rows)`.", meta[0].pos);
+			return null;
+		}
+		return haxe.macro.ExprTools.toString(meta[0].params[0]);
+	}
+
 	static function kindOf(t:Type, bound:Bool, at:haxe.macro.Expr.Position):String {
 		var read = bound ? boundType(t) : t;
 		if (read == null) return "String";
@@ -940,6 +959,18 @@ typedef Prop = {
 
 	/** Whether the field holds the cell's NAME rather than the cell. **/
 	@:optional var named:Bool;
+
+	/**
+		A function the canonical value passes through on its way in.
+
+		The canon measures in **points**. A backend that measures otherwise --
+		`cui`, whose unit is a character cell -- converts at its door rather
+		than reinterpreting the number, which is what made `spacing={12}` mean
+		twelve rows on a terminal. Written `@:convert(cui.nui.Units.rows)` on
+		the declaration, and applied by `Construct` (markup) and `Derive` (a
+		tree that arrived) so the two doors cannot disagree.
+	**/
+	@:optional var convert:Null<String>;
 }
 
 /** One act a control offers. **/
