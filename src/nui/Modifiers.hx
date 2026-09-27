@@ -83,12 +83,13 @@ class Modifiers {
 		Nothing: children are cut at this view's edge.
 
 		**This is the tree's word, and only that.** A container that cannot fit
-		its children cuts them anyway -- a row of three labels wanting 224
-		points in 180 has to do something, and drawing over whatever stands
-		beside it is the one answer that lies. That cut is a fact about one
-		layout, decided while arranging, and a backend that makes it must
-		**not** describe it as this modifier: a receiver with a wider row has
-		nothing to cut, and would cut all the same.
+		its children has to do something, and drawing over whatever stands
+		beside it is the one answer that lies. What it does is its own
+		business -- shrink what can give way, cut what cannot -- and either way
+		it is a fact about one layout, decided while arranging. A backend that
+		makes it must **not** describe it as this modifier: a receiver with a
+		wider row has nothing to shrink and nothing to cut, and would cut all
+		the same.
 
 		So `clip` means "cut here whether or not it fits", which is what a
 		scroll view wants. Overflowing is not a reason to send it.

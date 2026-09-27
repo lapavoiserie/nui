@@ -130,12 +130,16 @@ thing said twice, in two vocabularies, and a receiver sees whichever it happens
 to read.
 
 **`clip` is the tree's word, and only that.** A container that cannot fit its
-children cuts them anyway — a row of three labels wanting 224 points in 180 has
-to do something, and drawing over whatever stands beside it is the one answer
-that lies. But that cut is a fact about **one** layout, decided while arranging,
-and a backend making it must not describe it as `clip`: a receiver whose row is
-wider has nothing to cut and would cut all the same. `clip` means "cut here
-whether or not it fits", which is what a scroll view wants.
+children has to do something, and drawing over whatever stands beside it is the
+one answer that lies. What it does is the backend's own business and happens in
+two steps: **shrink what can give way, cut what cannot.** A label wraps, a
+picture keeps its ratio while it scales; a button is as wide as its label and
+says so, and what is left over is cut at the container's edge.
+
+Either way that is a fact about **one** layout, decided while arranging, and a
+backend making it must not describe it as `clip`: a receiver whose row is wider
+has nothing to shrink and nothing to cut, and would cut all the same. `clip`
+means "cut here whether or not it fits", which is what a scroll view wants.
 
 Three things are deliberately *not* in the set. A free-standing `cornerRadius`,
 because a radius belongs to the thing being rounded and `backgroundColor` and
