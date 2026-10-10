@@ -335,6 +335,37 @@ holds does not change because somebody folded it, and a receiver that draws it
 open needs them. A section holding a secret is a different question, and the
 answer is the same as everywhere — a `SecretInput` carries no value.
 
+### `ReorderList`
+
+Its rows as children, each keyed; the act `onMove`, which carries two indices;
+and `moveUpLabel` and `moveDownLabel` (optional, together).
+
+```
+ReorderList  moveUpLabel: "Monter"  moveDownLabel: "Descendre"
+  HStack  key: "lou"   …
+  HStack  key: "vous"  …
+  HStack  key: "sam"   …
+```
+
+**An order the person sets by hand.** Whose turn comes after whose, which
+step goes first: a list whose order *is* the data. The rows are ordinary views;
+the node adds the gesture. A backend gives each row the platform's way to pick
+it up and put it down — a drag on a desktop, a long press then a drag on a
+phone — and reports the result, it does not perform it.
+
+**`onMove(from, to)`: the row at `from` should end up at `to`**, both counted
+in the list as it is, `to` being the row's place once moved. The application
+moves it in its own data and the next tree shows the new order; a renderer that
+moved the row itself would be drawing an order the data does not have. After a
+wire it arrives as a string callback, `"from,to"`.
+
+**Never only by dragging.** A drag needs a pointer and a steady hand, and a
+screen reader has neither. With the two labels a backend also offers the moves
+one step at a time — a context menu, accessibility actions, a keyboard shortcut
+where the platform has one — named in the person's language, because the
+application's words are the only ones that are. Without them the list is
+reorderable by drag alone, which a backend may refuse to draw.
+
 ### `Slider`
 
 `value`, `min`, `max`, `onValue`, and **`orientation`** (optional):
