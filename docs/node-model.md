@@ -393,6 +393,7 @@ is read. So the value is the day itself, as text, and a renderer reads and
 writes it on a calendar pinned to UTC, where a day and its midnight cannot
 disagree. An empty or unreadable value shows today and is not written back
 until somebody picks a day: filling one in would be an edit nobody made.
+
 ### `Toolbar`
 
 `title` (optional) and the commands as children — ordinary `Button`s,
@@ -419,6 +420,7 @@ application's, in the person's language.
 The children are the same controls as anywhere else: a command is not a new
 kind of thing because of where it sits, and a tree describing a toolbar
 describes ordinary buttons a receiver already knows how to draw.
+
 ### `Form` and `Field`
 
 `Form` carries its rows as children: controls, `Field`s, and `Section`s that
@@ -533,6 +535,37 @@ writing in a language it does not know.
 
 Like `Sheet`, the node draws nothing where it stands when its platform has a
 place of its own for it, so it can sit anywhere in the screen it belongs to.
+
+### `ReorderList`
+
+Its rows as children, each keyed; the act `onMove`, which carries two indices;
+and `moveUpLabel` and `moveDownLabel` (optional, together).
+
+```
+ReorderList  moveUpLabel: "Monter"  moveDownLabel: "Descendre"
+  HStack  key: "lou"   …
+  HStack  key: "vous"  …
+  HStack  key: "sam"   …
+```
+
+**An order the person sets by hand.** Whose turn comes after whose, which
+step goes first: a list whose order *is* the data. The rows are ordinary views;
+the node adds the gesture. A backend gives each row the platform's way to pick
+it up and put it down — a drag on a desktop, a long press then a drag on a
+phone — and reports the result, it does not perform it.
+
+**`onMove(from, to)`: the row at `from` should end up at `to`**, both counted
+in the list as it is, `to` being the row's place once moved. The application
+moves it in its own data and the next tree shows the new order; a renderer that
+moved the row itself would be drawing an order the data does not have. After a
+wire it arrives as a string callback, `"from,to"`.
+
+**Never only by dragging.** A drag needs a pointer and a steady hand, and a
+screen reader has neither. With the two labels a backend also offers the moves
+one step at a time — a context menu, accessibility actions, a keyboard shortcut
+where the platform has one — named in the person's language, because the
+application's words are the only ones that are. Without them the list is
+reorderable by drag alone, which a backend may refuse to draw.
 
 ### `Slider`
 
