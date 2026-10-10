@@ -419,6 +419,48 @@ application's, in the person's language.
 The children are the same controls as anywhere else: a command is not a new
 kind of thing because of where it sits, and a tree describing a toolbar
 describes ordinary buttons a receiver already knows how to draw.
+### `Form` and `Field`
+
+`Form` carries its rows as children: controls, `Field`s, and `Section`s that
+group them. `Field` carries a `label` and the controls of one row as children.
+
+```
+Form
+  Section
+    Field  label: "Quoi"
+      TextInput  text: "Passer l’aspirateur"
+    Picker  label: "Fréquence"  selectedIndex: 1
+  Section
+    Field  label: "Jours"
+      Toggle  label: "S"  isOn: true  style: button
+```
+
+**A form is where a label stands beside what it names.** A desktop dialog lines
+its labels up on one edge and its controls on the other: macOS right-aligns
+them against a column, WinUI sets them above or beside each control in a grid.
+The same controls stacked one under the other, a heading over each group, read
+as a page of a website. So `Form` says *these are the rows of one entry*, and
+the backend draws them the way its platform draws a dialog.
+
+A control that has a `label` of its own — `Picker`, `Stepper`, `DateInput`,
+`Toggle` — is a row by itself, its label in the label column. `Field` is the row
+for what has none, or for several controls that answer one question together:
+a text field, seven weekday toggles, a picker beside the word that explains it.
+The label is the application's, in the person's language.
+
+A `Section` inside a form groups rows; untitled, it is only the gap between
+groups. Outside a `Form`, a `Field` is its label followed by its controls, and
+nothing is lost but the alignment.
+
+### `Toggle`
+
+`label`, a `Bool` `isOn` with `onToggle`, and `style` (optional).
+
+**`style`** says how it should be presented: `button` asks for a button that
+stays pressed while on — a weekday in a row of seven, a filter — rather than a
+switch or a box with a label beside it. A **hint**, failing soft for the reason
+`Picker`'s does: a backend without one draws its ordinary toggle, and the same
+choice is still there.
 
 ### `Disclosure`
 
