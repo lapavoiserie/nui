@@ -393,6 +393,32 @@ is read. So the value is the day itself, as text, and a renderer reads and
 writes it on a calendar pinned to UTC, where a day and its midnight cannot
 disagree. An empty or unreadable value shows today and is not written back
 until somebody picks a day: filling one in would be an edit nobody made.
+### `Toolbar`
+
+`title` (optional) and the commands as children — ordinary `Button`s,
+`Picker`s, `Toggle`s, `Menu`s.
+
+```
+Toolbar  title: "Aujourd’hui"
+  Picker  label: "Espace"  selectedIndex: 0
+  Toggle  label: "Les miennes"  isOn: false
+  Button  label: "Nouvelle tâche"  style: primary
+```
+
+**The window's own bar, where the platform has one.** A desktop window has a
+place for a screen's commands — macOS's unified toolbar, a WinUI CommandBar —
+and a row of buttons drawn inside the page instead is the tell of a port. So the
+node says *these are this screen's commands*, and the backend puts them where
+its platform does: macOS in the window's toolbar beside the title, Windows in a
+command bar at the head of the page. A backend with no such place draws them as
+a row where the node stands, and nothing is lost but the placement.
+
+`title` names the screen in that bar — the window's title on macOS. It is the
+application's, in the person's language.
+
+The children are the same controls as anywhere else: a command is not a new
+kind of thing because of where it sits, and a tree describing a toolbar
+describes ordinary buttons a receiver already knows how to draw.
 
 ### `Disclosure`
 
