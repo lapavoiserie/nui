@@ -300,6 +300,89 @@ itself makes about not having a `text`.
 A backend with no tab control draws the bar as a `Picker` over the page: the
 index and the action are the same two things.
 
+**`style`** (optional) is a hint, like a `Picker`'s: `sidebar`
+(`nui.Presentation.SIDEBAR`) asks for the tabs as the rows of a navigation
+sidebar with the selected page beside them. A backend without a sidebar draws
+its tab bar, and nothing is lost but the shape. The one-page rule is the same
+in both shapes, and so is whose selection it is.
+
+A backend that builds its own views from markup applies the rule there too:
+markup writes every tab's page, and the control keeps only the selected one.
+Choosing a tab must then rebuild the tree — the new page does not exist until
+it is built — so the selection is a cell the shape depends on, not one a
+control merely displays.
+
+### `Sheet`
+
+`presented` (`Bool`) with `onPresented`, `title` (optional), and the content as
+children — **only while presented**.
+
+```
+Sheet  presented: true  title: "Nouvelle tâche"
+  VStack  …the form…
+```
+
+A panel over the window for a task finished or abandoned before going on: an
+edit form, a choice among many. **Whether it is open is the application's**,
+like a `Tabs` selection and unlike a `Disclosure`'s `open`: the application
+opens it by writing `true`, and the person closing it (Escape, a click outside,
+a swipe) comes back through `onPresented` with `false`. Content not presented
+is not in the tree, for the reason an unselected tab carries no page — nothing
+to describe, project or forget to redact.
+
+The node draws nothing where it stands; a sheet hangs off its window. A
+backend without sheets may draw the content in place while presented.
+
+### `ConfirmDialog`
+
+`presented` (`Bool`) with `onPresented`, `title`, `message` (optional),
+`confirmLabel`, `cancelLabel`, `destructive` (optional, `Bool`) and the act
+`onConfirm`.
+
+```
+ConfirmDialog  presented: true  title: "Archiver la tâche ?"
+  message: "Son historique est conservé."
+  confirmLabel: "Archiver"  cancelLabel: "Annuler"  destructive: true
+```
+
+A question with one act and a way out. Answering either way closes it: a
+renderer writes `false` back, and runs `onConfirm` only for the act.
+
+**Both labels are the application's.** A library writing "Cancel" would be
+writing in a language it does not know — the argument a `Disclosure` summary
+makes — and a dialog half in one language reads as broken. `destructive` asks
+for the act to be drawn as one that destroys: a hint, failing soft, because the
+words still say what the button does.
+
+### `Section`, `Divider`, `Menu`
+
+`Section` carries an optional `title` and its rows as children: a heading over
+a group, which a form draws as a grouped block. `Divider` carries nothing.
+
+`Menu` carries `label` and its items as children — `Button`s, `Divider`s,
+nested `Menu`s. An item is an ordinary `Button`, so its act is the button's
+`onClick` and nothing new crosses a wire.
+
+### `Stepper`
+
+`label`, an `Int` `value` with `onValue`, `min`, `max`, and `step` (optional,
+`1`). The bounds are part of what the value means — an interval of zero weeks
+is not a shorter interval, it is none — so a renderer clamps to them; it does
+not treat them as a hint.
+
+### `DateInput`
+
+`label`, a `String` `value` in `YYYY-MM-DD` with `onValue`, and optional `min`
+and `max` in the same form.
+
+**A calendar day, not an instant.** An instant is a day only in some time zone:
+a chore due "the 12th" stored as UTC midnight is the 11th on a screen in New
+York, and what the household meant was neither — it was the 12th, wherever it
+is read. So the value is the day itself, as text, and a renderer reads and
+writes it on a calendar pinned to UTC, where a day and its midnight cannot
+disagree. An empty or unreadable value shows today and is not written back
+until somebody picks a day: filling one in would be an edit nobody made.
+
 ### `Disclosure`
 
 `title`, `summary` (optional) and `open` (optional, `Bool`): a heading that is

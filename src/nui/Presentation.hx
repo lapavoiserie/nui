@@ -25,4 +25,18 @@ class Presentation {
 	/** Whether a control was asked to be shown this way. **/
 	public static function isSegmented(said:Null<String>):Bool
 		return said != null && said.toLowerCase() == SEGMENTED;
+
+	/**
+		A `Tabs` shown as the rows of a navigation sidebar, the selected page
+		beside them, rather than as a bar over the page.
+
+		A window with a handful of sections that each fill it — Today, Chores,
+		Split — reads that way on a desktop; a phone has no room for it, and a
+		backend without a sidebar draws its tab bar.
+	**/
+	public static inline var SIDEBAR = "sidebar";
+
+	/** Whether a `Tabs` was asked to be shown as a sidebar. **/
+	public static function isSidebar(said:Null<String>):Bool
+		return said != null && said.toLowerCase() == SIDEBAR;
 }

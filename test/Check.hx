@@ -574,6 +574,11 @@ class Check {
 			nui.Presentation.isSegmented("segmented") && nui.Presentation.isSegmented("Segmented"));
 		check("and anything else is an ordinary one",
 			!nui.Presentation.isSegmented("segment") && !nui.Presentation.isSegmented(null));
+		check("a sidebar is asked for by name, in any case",
+			nui.Presentation.isSidebar("sidebar") && nui.Presentation.isSidebar("Sidebar"));
+		check("and anything else is a tab bar",
+			!nui.Presentation.isSidebar("side") && !nui.Presentation.isSidebar(null)
+			&& !nui.Presentation.isSidebar(nui.Presentation.SEGMENTED));
 
 		// --- Orientation ---
 		//
