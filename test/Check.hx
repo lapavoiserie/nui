@@ -579,6 +579,9 @@ class Check {
 		check("and anything else is a tab bar",
 			!nui.Presentation.isSidebar("side") && !nui.Presentation.isSidebar(null)
 			&& !nui.Presentation.isSidebar(nui.Presentation.SEGMENTED));
+		check("a button style is asked for by name, in any case",
+			nui.Presentation.is("Primary", nui.Presentation.PRIMARY) && nui.Presentation.is("check", nui.Presentation.CHECK)
+			&& !nui.Presentation.is(null, nui.Presentation.PLAIN) && !nui.Presentation.is("primary", nui.Presentation.PLAIN));
 
 		// --- Orientation ---
 		//

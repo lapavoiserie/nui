@@ -39,4 +39,19 @@ class Presentation {
 	/** Whether a `Tabs` was asked to be shown as a sidebar. **/
 	public static function isSidebar(said:Null<String>):Bool
 		return said != null && said.toLowerCase() == SIDEBAR;
+	/** A `Button` that is the one act its screen is for: prominent, in the accent. **/
+	public static inline var PRIMARY = "primary";
+
+	/** A `Button` without chrome, for the secondary acts of a row. **/
+	public static inline var PLAIN = "plain";
+
+	/**
+		A `Button` drawn as a round mark that ticks a thing off; its `checked`
+		says whether it is ticked, and its label is spoken rather than shown.
+	**/
+	public static inline var CHECK = "check";
+
+	/** Whether a control was asked for `style` (any of the above), in any case. **/
+	public static function is(said:Null<String>, style:String):Bool
+		return said != null && said.toLowerCase() == style;
 }
