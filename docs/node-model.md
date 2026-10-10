@@ -335,6 +335,43 @@ holds does not change because somebody folded it, and a receiver that draws it
 open needs them. A section holding a secret is a different question, and the
 answer is the same as everywhere — a `SecretInput` carries no value.
 
+### `Notice`
+
+`presented` (`Bool`) with `onPresented`, `message`, `kind` (optional),
+`actionLabel` and the act `onAction` (both optional, together), and
+`dismissLabel`.
+
+```
+Notice  presented: true  message: "« Vaisselle » faite — merci !"  kind: success
+  actionLabel: "Annuler"  dismissLabel: "Fermer"
+```
+
+**A word about what just happened.** A chore ticked off, a form saved, a
+request that failed: the person should hear it, once, without being stopped.
+A line of text left in the page says it and then keeps saying it, an hour
+later, about something long done; a dialog stops everything to say "saved".
+So the node says *this is news*, and the backend gives it the platform's
+place for news: macOS a toast over the bottom of the window, WinUI an
+`InfoBar` at the head of the page. A backend with neither draws a row where
+the node stands.
+
+**News goes away, trouble stays.** `kind` is `success`, `info`, `warning` or
+`error` — a hint for how it is drawn, failing soft. A `success` or `info`
+notice may leave on its own after a few seconds, and a renderer that takes it
+away writes `false` back. A `warning` or `error` stays until somebody closes
+it: the thing it reports is not over.
+
+**An act, at most one.** `onAction` is what the news makes possible right
+now — *Undo* after a chore is ticked off, *Retry* after a failure — and
+`actionLabel` names it. Doing it closes the notice. Two acts are a dialog.
+
+**The labels are the application's**, `dismissLabel` included: a close button
+is spoken by a screen reader, and a library that wrote "Close" would be
+writing in a language it does not know.
+
+Like `Sheet`, the node draws nothing where it stands when its platform has a
+place of its own for it, so it can sit anywhere in the screen it belongs to.
+
 ### `Slider`
 
 `value`, `min`, `max`, `onValue`, and **`orientation`** (optional):
