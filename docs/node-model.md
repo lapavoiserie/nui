@@ -398,6 +398,22 @@ reader says. A backend that draws no icons draws the label. One icon, as a prop
 rather than a child, because a button has one icon and one label, and naming it for
 accessibility is then the renderer's job, not the tree's.
 
+**`style`** (optional) is a hint, like a `Picker`'s, about how much the button
+should stand out — the meaning stays the act:
+
+- `primary` — the one act a screen is for (save, add a chore), drawn prominent and
+  in the accent. One per screen or dialog; a backend draws its own prominent style.
+- `plain` — no chrome, for the secondary acts of a row (skip, undo), so a list of
+  ten rows is not ten rows of boxes.
+- `check` — a round mark that ticks a thing off, the way a to-do list does. The
+  **`checked`** property (`Bool`) draws it ticked; the **label is spoken, not
+  shown** — "Mark the dishes done" — because a check carries no text of its own.
+  Pressing it runs `onClick`; whether the thing is done is the application's to
+  say, so `checked` follows its state and is never flipped by the control.
+
+A backend without the style draws an ordinary button — for `check`, one that
+shows its label — and nothing is lost but the shape.
+
 ### `Tappable`
 
 `label` and `onClick`, and children of any kind: a container that is **one

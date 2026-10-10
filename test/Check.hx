@@ -574,6 +574,9 @@ class Check {
 			nui.Presentation.isSegmented("segmented") && nui.Presentation.isSegmented("Segmented"));
 		check("and anything else is an ordinary one",
 			!nui.Presentation.isSegmented("segment") && !nui.Presentation.isSegmented(null));
+		check("a button style is asked for by name, in any case",
+			nui.Presentation.is("Primary", nui.Presentation.PRIMARY) && nui.Presentation.is("check", nui.Presentation.CHECK)
+			&& !nui.Presentation.is(null, nui.Presentation.PLAIN) && !nui.Presentation.is("primary", nui.Presentation.PLAIN));
 
 		// --- Orientation ---
 		//
