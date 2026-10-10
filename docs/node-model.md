@@ -260,6 +260,17 @@ picture is pulled by content and verified because it is data on a screen;
 installing a typeface is an act on a machine. A backend with one font — a
 terminal — honours `weight`, `italic` and `numbers`, and ignores the rest.
 
+### `VStack` and `HStack`
+
+`spacing` (optional), `alignment` (optional) and the children. `alignment` is
+where the children sit *across* the stack: `leading`, `center` or `trailing` for
+a `VStack`, `top`, `center` or `bottom` for an `HStack` — `center` when absent.
+
+It is a property of the stack, not a modifier on a child, for the reason the
+modifier list leaves it out: placing a child is the parent's business, and a
+child that asked to be "aligned" would be asking something only its parent can
+answer.
+
 ### `Tabs` and `Tab`
 
 `Tabs` carries `selectedIndex` (`Int`) and `onSelect` (an index), and its
