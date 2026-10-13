@@ -456,13 +456,21 @@ nothing is lost but the alignment.
 
 ### `Toggle`
 
-`label`, a `Bool` `isOn` with `onToggle`, and `style` (optional).
+`label`, a `Bool` `isOn` with `onToggle`, `style` (optional) and
+`spokenLabel` (optional).
 
 **`style`** says how it should be presented: `button` asks for a button that
 stays pressed while on — a weekday in a row of seven, a filter — rather than a
 switch or a box with a label beside it. A **hint**, failing soft for the reason
 `Picker`'s does: a backend without one draws its ordinary toggle, and the same
 choice is still there.
+
+**`spokenLabel`** is what a screen reader says in place of `label`, for a
+label that is cut short to fit: seven days drawn `lun.` … `dim.`, or `L M M J V
+S D`, are spoken `lundi` … `dimanche`, so two `M` are not one. A backend that
+shows tooltips shows it there too, since a reader who can see may not guess an
+abbreviation either. Without it, `label` is spoken, as before. The label is
+the application's, in the person's language, and so is this.
 
 ### `Disclosure`
 
