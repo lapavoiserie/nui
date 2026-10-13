@@ -551,6 +551,18 @@ class Declarations {
 		return null;
 	}
 
+	/**
+		Whether `field` of the control that declares `type` can be given a
+		value once the control is made -- what `Construct` does with every
+		written property its constructor did not take.
+	**/
+	public static function assignable(d:Dialect, type:String, field:String):Bool {
+		var path = types(d).get(type);
+		if (path == null) return false;
+		var found = fieldNamed(resolveClass(path), field);
+		return found != null && writable(found);
+	}
+
 	/** A field of this class or of anything it extends. **/
 	static function fieldNamed(cls:Null<ClassType>, name:String):Null<ClassField> {
 		while (cls != null) {
