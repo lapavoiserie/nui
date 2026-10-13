@@ -43,6 +43,12 @@ import haxe.macro.Expr;
 	control would be built around a cell nothing reads or nothing writes, which
 	is worse than not building it.
 **/
+/** A control to make: its constructor call, and what to assign after it. **/
+typedef Parts = {made:Expr, assigns:Array<Assign>};
+
+/** One property or act the constructor did not take. **/
+typedef Assign = {field:String, value:Expr};
+
 class Construct {
 	/**
 		The expression that makes one control, or null when this one cannot be.
@@ -53,6 +59,34 @@ class Construct {
 	**/
 	public static function expr(d:Declarations.Dialect, type:String,
 			given:Map<String, Expr>, children:Null<Expr>, pos:Position):Null<Expr> {
+		var made = parts(d, type, given, children, pos);
+		return made == null ? null : assemble(made, pos);
+	}
+
+	/**
+		The control as two parts: the constructor call, and the assignments
+		that follow it -- every property and act the markup wrote and the
+		constructor did not take.
+
+		**Why the second part exists.** `Declarations.propsFor` says it in so
+		many words: a field whose name is a constructor argument fills it,
+		"anything else is assigned after the control is made". `Derive` did
+		that for a tree that arrived; this did not, for a tree that was
+		written. A property assignable alone was accepted by the markup and
+		then dropped on the way, without a word -- `<Text scale="title"
+		weight={700}/>` came out as `new sui.ui.Text(...)` and nothing else,
+		so a desktop client's titles were body text on the Mac and titles on
+		Windows, which builds from nodes.
+
+		Only what was WRITTEN is assigned, like `Derive`: a control's own
+		default is better than a value this would otherwise invent for it.
+
+		Separate from `expr` for a backend that has to see the constructor
+		alone -- `sui` defers it, and needs the assignments replayed where the
+		deferred control is rebuilt. Everyone else calls `expr`.
+	**/
+	public static function parts(d:Declarations.Dialect, type:String,
+			given:Map<String, Expr>, children:Null<Expr>, pos:Position):Null<Parts> {
 		var path = Declarations.classOf(d, type);
 		if (path == null) return null;
 
@@ -144,7 +178,61 @@ class Construct {
 			}
 		}
 
-		return {expr: ENew(pathOf(path), args), pos: pos};
+		// What the constructor did not take, in the order it was declared.
+		// A name is taken when the constructor matched it by any of the three
+		// keys above -- the same rule, so nothing is both passed and set.
+		var argNames = [for (arg in Declarations.argumentsOf(d, type)) arg.name];
+		inline function taken(name:Null<String>):Bool
+			return name != null && argNames.indexOf(name) >= 0;
+		var assigns:Array<Assign> = [];
+		for (prop in props) {
+			if (taken(prop.name) || taken(prop.field) || taken(prop.argument)) continue;
+			if (!given.exists(prop.name)) continue;
+			// A two-way value is a cell, and a cell only ever goes to the
+			// constructor (see above).
+			if (prop.callback != null) continue;
+			refuseUnassignable(d, type, prop.name, prop.field, pos);
+			assigns.push({field: prop.field, value: converted(prop, given.get(prop.name))});
+		}
+		for (action in actions) {
+			if (taken(action.field) || !given.exists(action.name)) continue;
+			refuseUnassignable(d, type, action.name, action.field, pos);
+			assigns.push({field: action.field, value: given.get(action.name)});
+		}
+
+		return {made: {expr: ENew(pathOf(path), args), pos: pos}, assigns: assigns};
+	}
+
+	/**
+		The constructor call followed by its assignments, as one expression
+		whose value is the control. Just the call when there is nothing to
+		assign, so every control written with constructor properties only is
+		built by exactly the expression it always was.
+	**/
+	public static function assemble(p:Parts, pos:Position):Expr {
+		if (p.assigns.length == 0) return p.made;
+		var body:Array<Expr> = [macro var __made = ${p.made}];
+		for (a in p.assigns) {
+			var field = a.field;
+			var value = a.value;
+			body.push(macro @:pos(value.pos) __made.$field = $value);
+		}
+		body.push(macro __made);
+		return macro @:pos(pos) @:privateAccess $b{body};
+	}
+
+	/**
+		A written property with nowhere to go is a compile error, naming it.
+		It used to be dropped, which is the one answer this project does not
+		give to something knowable while compiling.
+	**/
+	static function refuseUnassignable(d:Declarations.Dialect, type:String, name:String,
+			field:Null<String>, pos:Position):Void {
+		if (field != null && Declarations.assignable(d, type, field)) return;
+		Context.error('"$type" accepts "$name", but its constructor does not take it '
+			+ "and no field can be given it afterwards, so the value would be lost.\n"
+			+ "  Make it a constructor argument or a settable field of the control "
+			+ "-- see nui.macros.Construct.parts.", pos);
 	}
 
 	/**
